@@ -1,0 +1,1 @@
+from .make_model_clipreid import make_model

@@ -28,7 +28,7 @@ class Window:
     __THUMB_HEIGHT: int = 100
     __SCROLLBAR_WIDTH: int = 20
     __CAMERAS: list[(str, cv2.VideoCapture, tk.PhotoImage)] = []
-    __DIRECTORY: str = "C:/Users/robid/PycharmProjects/Long-term-re-identification/"
+    __DIRECTORY: str = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
     def __init__(self, cfg) -> None:
         self.__cfg = cfg
@@ -185,7 +185,7 @@ class Window:
                 cls.__VOLUME_BUTTON = ImageTk.PhotoImage(Image.open("images/volume.png").resize((30, 30)))
 
             if not cls.__CAMERAS:
-                directory = f'{cls.__DIRECTORY}GUI/video/'
+                directory = f'{cls.__DIRECTORY}/GUI/video/'
                 for root, _, files in os.walk(directory):
                     if not root.endswith(day) and day != 'both':
                         continue
@@ -427,7 +427,7 @@ class Window:
                 thumbnail.__del__()
             cls.__CAMERAS.clear()
 
-        directory = f'{cls.__DIRECTORY}datasets/my_dataset/query'
+        directory = f'{cls.__DIRECTORY}/datasets/my_dataset/query'
         for filename in os.listdir(directory):
             file_path = os.path.join(directory, filename)
             if os.path.isfile(file_path):
@@ -455,7 +455,7 @@ class Window:
     def __save_probe(self) -> None:
         cropped_image = ImageTk.getimage(self.__current_selected_area)
         name = f'{self.__current_camera_title}_MILLIS_0_TRK-ID_0_TIMESTAMP_0-0-0.png'
-        cropped_image.save(f'{self.__DIRECTORY}datasets/my_dataset/query/{name}')
+        cropped_image.save(f'{self.__DIRECTORY}/datasets/my_dataset/query/{name}')
 
     def __modify_view(self, future):
         results = future.result()
@@ -486,7 +486,7 @@ class Window:
         if self.__results:
             self.__results.clear()
 
-        directory = f'{self.__DIRECTORY}datasets/my_dataset/query'
+        directory = f'{self.__DIRECTORY}/datasets/my_dataset/query'
         for filename in os.listdir(directory):
             file_path = os.path.join(directory, filename)
             if os.path.isfile(file_path):

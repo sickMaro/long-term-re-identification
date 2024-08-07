@@ -2,7 +2,7 @@ import argparse
 import os
 
 from config import cfg
-from datasets import make_dataloader
+from .datasets import make_dataloader
 from model import make_model
 from processor import do_inference
 from utils.logger import setup_logger
