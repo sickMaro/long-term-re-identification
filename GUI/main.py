@@ -2,7 +2,7 @@ import sys
 
 from window import Window
 
-sys.path.append('../SOLIDER-REID')
+sys.path.append('../methods/SOLIDER-REID')
 from integration_file import parse_args
 
 if __name__ == "__main__":

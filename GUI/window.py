@@ -11,7 +11,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageTk
 
-sys.path.append('../SOLIDER-REID')
+sys.path.append('../methods/SOLIDER-REID')
 from integration_file import get_inference_results, get_model
 
 
