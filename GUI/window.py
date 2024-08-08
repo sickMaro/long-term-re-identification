@@ -1,12 +1,11 @@
 import os
-import re
 import sys
 import threading
 import tkinter as tk
 from concurrent.futures import ThreadPoolExecutor
 from itertools import zip_longest
 from tkinter import ttk
-
+from cameras_manager import VideoImageManager
 import cv2
 import numpy as np
 from PIL import Image, ImageTk
@@ -18,33 +17,26 @@ from integration_file import get_inference_results, get_model
 class Window:
     __MAIN_TITLE: str = 'Person re-identification - SATcase6video'
     __RESULT_TITLE: str = 'Result - SATcase6video'
-    __PLAY_BUTTON: tk.PhotoImage = None
-    __PAUSE_BUTTON: tk.PhotoImage = None
-    __VOLUME_BUTTON: tk.PhotoImage = None
     __WIDTH: int = 1
     __HEIGHT: int = 1
-    __VIDEO_TYPE: str = ".mp4"
-    __THUMB_WIDTH: int = 200
-    __THUMB_HEIGHT: int = 100
     __SCROLLBAR_WIDTH: int = 20
-    __CAMERAS: list[(str, cv2.VideoCapture, tk.PhotoImage)] = []
     __DIRECTORY: str = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
     def __init__(self, cfg) -> None:
         self.__cfg = cfg
         self.__model = None
-        self.__current_camera_title: str = ''
+        self.video_image_manager = VideoImageManager()
         self.__window: tk.Tk = tk.Tk()
         self.__configure_window(main=True)
         self.__results: list[tk.PhotoImage] = []
 
-        Window.__load_images_and_cameras(self.__cfg.DATASETS.DAY)
+        self.video_image_manager.load_images_and_cameras(self.__cfg.DATASETS.DAY)
 
-        self.__paused: bool = True
+        self.play_button, self.pause_button, self.volume_button = (
+            self.video_image_manager.get_buttons_images())
+        self.cameras = self.video_image_manager.get_cameras()
+
         self.__video: cv2.VideoCapture = ...
-        self.__current_frame: np.ndarray | None = None
-        self.__current_frame_PI: tk.PhotoImage = ...
-        self.__current_selected_area: tk.PhotoImage | None = None
 
         self.__frm_main: tk.Frame = tk.Frame(self.__window, bg="light grey")
         self.__frm_video: tk.Frame = tk.Frame(self.__frm_main, bg="light grey")
@@ -53,6 +45,8 @@ class Window:
         # size for the resized frames of the video
         Window.__WIDTH, Window.__HEIGHT = (Window.__get_frm_video_width(self),
                                            Window.__get_frm_video_height(self))
+
+        self.video_image_manager.set_video_dimensions(Window.__WIDTH, Window.__HEIGHT)
 
         self.__lbl_title: tk.Label = tk.Label(self.__window, fg="black", bg="light grey",
                                               text=Window.__MAIN_TITLE, height=2, relief="raised",
@@ -66,11 +60,11 @@ class Window:
 
         self.__frm_video_bar: tk.Frame = tk.Frame(self.__frm_video, bg="gray", height=15)
 
-        self.__btn_play_video: tk.Button = tk.Button(self.__frm_video_bar, image=str(Window.__PLAY_BUTTON),
+        self.__btn_play_video: tk.Button = tk.Button(self.__frm_video_bar, image=str(self.play_button),
                                                      relief="flat", height=20, width=20,
                                                      command=self.__button_pressed)
 
-        self.__btn_video_volume: tk.Button = tk.Button(self.__frm_video_bar, image=str(Window.__VOLUME_BUTTON),
+        self.__btn_video_volume: tk.Button = tk.Button(self.__frm_video_bar, image=str(self.volume_button),
                                                        relief="flat", height=20, width=20)
 
         self.__frm_container: tk.Frame = tk.Frame(self.__frm_cameras, highlightbackground="gray", border=2,
@@ -118,9 +112,6 @@ class Window:
     def __del__(self):
         if self.__results:
             self.__results.clear()
-
-        self.__current_frame_PI = None
-        self.__current_selected_area = None
 
     def __set_model(self, future):
         with self.__lock:
@@ -175,36 +166,6 @@ class Window:
     def __canvas_configure(self, event: tk.Event) -> None:
         self.__canvas_cameras.itemconfig("cameras", width=event.width)
 
-    @classmethod
-    def __load_images_and_cameras(cls, day) -> None:
-
-        try:
-            if not cls.__PLAY_BUTTON and not cls.__PAUSE_BUTTON and not cls.__VOLUME_BUTTON:
-                cls.__PLAY_BUTTON = ImageTk.PhotoImage(Image.open("images/play-button.png").resize((25, 25)))
-                cls.__PAUSE_BUTTON = ImageTk.PhotoImage(Image.open("images/pause-button.png").resize((25, 25)))
-                cls.__VOLUME_BUTTON = ImageTk.PhotoImage(Image.open("images/volume.png").resize((30, 30)))
-
-            if not cls.__CAMERAS:
-                directory = f'{cls.__DIRECTORY}/GUI/video/'
-                for root, _, files in os.walk(directory):
-                    if not root.endswith(day) and day != 'both':
-                        continue
-                    for file in files:
-                        path = os.path.join(root, file)
-                        if file.endswith(cls.__VIDEO_TYPE):
-                            video = cv2.VideoCapture(path)
-                            if video.isOpened():
-                                ret, frame = video.read()
-                                if ret:
-                                    frame_resized = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB),
-                                                               (cls.__THUMB_WIDTH, cls.__THUMB_HEIGHT))
-                                    photo = ImageTk.PhotoImage(image=Image.fromarray(frame_resized))
-                                    cls.__CAMERAS.append((re.sub(r'day\d+_|\.mp4', '', file), video, photo))
-
-        except OSError:
-            print("Error while loading images and cameras...")
-            cls.__free_resources_on_closure()
-
     def __bind_events(self) -> None:
         self.__cnv_video.bind("<Button-1>", self.__start_drag)
         self.__cnv_video.bind("<B1-Motion>", self.__on_drag)
@@ -229,34 +190,24 @@ class Window:
 
     def __button_pressed(self) -> None:
         if self.__btn_play_video["image"] is not None:
-            if self.__btn_play_video["image"] == str(Window.__PLAY_BUTTON):
-                self.__btn_play_video["image"] = Window.__PAUSE_BUTTON
-                self.__paused = False
+            if self.__btn_play_video["image"] == str(self.play_button):
+                self.__btn_play_video["image"] = self.pause_button
+                self.video_image_manager.set_paused(False)
                 self.__read_video()
             else:
-                self.__btn_play_video["image"] = Window.__PLAY_BUTTON
-                self.__paused = True
+                self.__btn_play_video["image"] = self.play_button
+                self.video_image_manager.set_paused(True)
 
     def __read_video(self):
-        try:
-            ret, frame = self.__video.read()
-            if ret:
+        photo = self.video_image_manager.read_video()
+        if photo:
+            self.__cnv_video.create_image((0, 0), anchor=tk.NW, image=photo)
+            self.__progress()
+        else:
+            self.__button_pressed()
 
-                frame_resized = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB),
-                                           (Window.__WIDTH, Window.__HEIGHT))
-                photo = ImageTk.PhotoImage(image=Image.fromarray(frame_resized))
-                self.__cnv_video.create_image((0, 0), anchor=tk.NW, image=photo)
-                self.__current_frame = frame_resized
-                self.__current_frame_PI = photo
-                self.__progress()
-            else:
-                self.__button_pressed()
-
-            if not self.__paused:
-                self.__cnv_video.after(9, self.__read_video)
-        except (OSError, cv2.error):
-            print("Error while processing video...")
-            self.__on_closing()
+        if not self.video_image_manager.is_paused():
+            self.__cnv_video.after(8, self.__read_video)
 
     def __progress(self) -> None:
         if self.__progress_bar['value'] < self.__progress_bar["length"]:
@@ -265,7 +216,7 @@ class Window:
 
     def __seek_video(self, event: tk.Event) -> None:
         video_percentage = event.x / self.__progress_bar.winfo_width()
-        self.__video.set(cv2.CAP_PROP_POS_FRAMES, int(video_percentage * self.__video.get(cv2.CAP_PROP_FRAME_COUNT)))
+        self.video_image_manager.set_video_progress(video_percentage)
         self.__progress()
 
     @staticmethod
@@ -282,10 +233,9 @@ class Window:
 
     def __create_cameras_frames(self) -> None:
         pad_x, pad_y = 13, 20
-        for i, (camera_title, video, photo) in enumerate(Window.__CAMERAS):
-
-            video_canvas = tk.Canvas(self.__frm_final_cameras,
-                                     height=Window.__THUMB_HEIGHT, width=Window.__THUMB_WIDTH)
+        for i, (camera_title, video, photo) in enumerate(self.cameras):
+            width, height = self.video_image_manager.get_thumb_dimension()
+            video_canvas = tk.Canvas(self.__frm_final_cameras, height=height, width=width)
             if i == 0:
                 self.__update_main_video(video, camera_title)
 
@@ -378,14 +328,11 @@ class Window:
             inner_frm_children_list[i + 1].config(text=text)
 
     def __update_main_video(self, video: cv2.VideoCapture, camera_title: str) -> None:
-        self.__paused = True
-        self.__current_camera_title = camera_title
-        self.__video = video
-        self.__video.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        self.__video = self.video_image_manager.change_main_video(video, camera_title)
         self.__progress_bar["value"] = 0
         self.__progress_bar["length"] = self.__video.get(cv2.CAP_PROP_FRAME_COUNT)
 
-        self.__btn_play_video["image"] = Window.__PLAY_BUTTON
+        self.__btn_play_video["image"] = self.play_button
         self.__read_video()
 
     def __start_drag(self, event: tk.Event) -> None:
@@ -395,7 +342,6 @@ class Window:
 
     def __on_drag(self, event: tk.Event) -> None:
         if self.__cnv_video is not None:
-            alpha = 0.2  # Contrast control
 
             x0 = int(min(self.__start_x, self.__cnv_video.canvasx(event.x)))
             x1 = int(max(self.__start_x, self.__cnv_video.canvasx(event.x)))
@@ -405,29 +351,14 @@ class Window:
             self.__cnv_video.delete("drag_rectangle")
             self.__cnv_video.create_rectangle(x0, y0, x1, y1, outline="white", fill="", tags="drag_rectangle")
 
-            darkened_img = cv2.convertScaleAbs(self.__current_frame, alpha=alpha)
-            darkened_img[y0:y1, x0:x1] = self.__current_frame[y0:y1, x0:x1]
-
-            image = Image.fromarray(darkened_img)
-            photo = ImageTk.PhotoImage(image=image)
-            cropped_image = image.crop((x0, y0, x1, y1))
+            photo = self.video_image_manager.selected_area((x0, x1, y0, y1))
 
             self.__cnv_video.create_image((0, 0), anchor=tk.NW, image=photo)
-            self.__current_frame_PI = photo
-            self.__current_selected_area = ImageTk.PhotoImage(cropped_image)
 
-    @classmethod
-    def __free_resources_on_closure(cls) -> None:
-        (cls.__VOLUME_BUTTON, cls.__PAUSE_BUTTON, cls.__PLAY_BUTTON) = None, None, None
+    def __free_resources_on_closure(self) -> None:
+        self.video_image_manager.__del__()
 
-        if cls.__CAMERAS:
-            for _, video, thumbnail in cls.__CAMERAS:
-                if video.isOpened():
-                    video.release()
-                thumbnail.__del__()
-            cls.__CAMERAS.clear()
-
-        directory = f'{cls.__DIRECTORY}/datasets/my_dataset/query'
+        directory = f'{self.__DIRECTORY}/datasets/my_dataset/query'
         for filename in os.listdir(directory):
             file_path = os.path.join(directory, filename)
             if os.path.isfile(file_path):
@@ -437,7 +368,7 @@ class Window:
 
     def __on_closing(self) -> None:
         self.__del__()
-        Window.__free_resources_on_closure()
+        self.__free_resources_on_closure()
 
     def show_window(self) -> None:
         self.__window.mainloop()
@@ -454,7 +385,7 @@ class Window:
 
     def __save_probe(self) -> None:
         cropped_image = ImageTk.getimage(self.__current_selected_area)
-        name = f'{self.__current_camera_title}_MILLIS_0_TRK-ID_0_TIMESTAMP_0-0-0.png'
+        name = f'{self.video_image_manager.get_current_video_title()}_MILLIS_0_TRK-ID_0_TIMESTAMP_0-0-0.png'
         cropped_image.save(f'{self.__DIRECTORY}/datasets/my_dataset/query/{name}')
 
     def __modify_view(self, future):
