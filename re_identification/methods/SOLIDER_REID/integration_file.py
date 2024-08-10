@@ -7,6 +7,7 @@ from model import make_model
 from processor import do_custom_inference
 from utils.logger import setup_logger
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description="ReID Baseline Training")
     parser.add_argument(

@@ -80,34 +80,12 @@ def add_borders(curr_img, target_shape=(224, 224), fill_type=0):
     return image, shift_h, shift_w
 
 
-def resize_image(images, target_size, resize_factor=None, is_pad=True, interpolation=3):
+def resize_image(images, target_size, interpolation=3):
     length = len(images)
     images_lst = np.zeros((length, target_size[0], target_size[1], 3))
-    shift_h_lst = np.zeros(length)
-    shift_w_lst = np.zeros(length)
-    scale_lst = np.zeros((length, 4))
 
     for i, image in enumerate(images):
-        curr_image_size = image.shape[0:2]
+        images_lst[i] = (
+            cv2.resize(image, (target_size[1], target_size[0]), interpolation=interpolation))
 
-        if resize_factor is None and is_pad:
-            resize_factor = min(target_size[0] / curr_image_size[0], target_size[1] / curr_image_size[1])
-        elif resize_factor is None and not is_pad:
-            resize_factor = np.sqrt((target_size[0] * target_size[1]) / (curr_image_size[0] * curr_image_size[1]))
-
-        image = cv2.resize(image, None, None, fx=resize_factor, fy=resize_factor, interpolation=interpolation)
-
-        if is_pad:
-            image, shift_h, shift_w = add_borders(image, target_size)
-        else:
-            shift_h = shift_w = 0
-
-        scale = np.array([image.shape[1] / resize_factor, image.shape[0] / resize_factor,
-                          image.shape[1] / resize_factor, image.shape[0] / resize_factor])
-
-        images_lst[i] = image
-        shift_h_lst[i] = shift_h / image.shape[0] / 2
-        shift_w_lst[i] = shift_w / image.shape[1] / 2
-        scale_lst[i] = scale
-
-    return images_lst, shift_h_lst, shift_w_lst, scale_lst
+    return images_lst

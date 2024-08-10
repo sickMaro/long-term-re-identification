@@ -2,6 +2,7 @@ import torch
 import torchvision
 import torch.nn as nn
 import numpy as np
+
 from data.config import TestBaseTransform, widerface_640 as cfg
 from layers import Detect, get_prior_boxes, FEM, pa_multibox, mio_module, upsample_product
 from utils import resize_image
@@ -11,11 +12,13 @@ class SSD(nn.Module):
 
     def __init__(self, phase, nms_thresh=0.3, nms_conf_thresh=0.01):
         super(SSD, self).__init__()
+
         self.phase = phase
         self.num_classes = 2
         self.cfg = cfg
+        self.priors = None
 
-        resnet = torchvision.models.resnet152(pretrained=True)
+        resnet = torchvision.models.resnet152()
 
         self.layer1 = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu, resnet.maxpool, resnet.layer1)
         self.layer2 = nn.Sequential(resnet.layer2)
@@ -123,7 +126,8 @@ class SSD(nn.Module):
 
         if self.phase != 'onnx_export':
 
-            if self.last_image_size is None or self.last_image_size != image_size or self.last_feature_maps != featuremap_size:
+            if (self.last_image_size is None or self.last_image_size != image_size or
+                    self.last_feature_maps != featuremap_size):
                 self.priors = get_prior_boxes(self.cfg, featuremap_size, image_size).to(face_loc.device)
                 self.last_image_size = image_size
                 self.last_feature_maps = featuremap_size
@@ -133,18 +137,20 @@ class SSD(nn.Module):
             output = torch.cat((face_loc, face_conf), 2)
         return output
 
-    def detect_on_image(self, source_image, target_size, device, is_pad=False, keep_thresh=0.3):
-        image, shift_h_scaled, shift_w_scaled, scale = resize_image(source_image, target_size, is_pad=is_pad)
-        x = torch.from_numpy(self.test_transform(image)).permute(0, 3, 1, 2).to(device)
+    def detect_on_image(self, source_image, target_size, device, keep_thresh=0.3):
+        images = resize_image(source_image, target_size)
+        scale = np.array([target_size[1], target_size[0], target_size[1], target_size[0]])
+        x = torch.from_numpy(self.test_transform(images)).permute(0, 3, 1, 2).to(device)
         detections = self.forward(x).cpu().numpy()
 
-        scores = detections[0, 1, :, 0]
-        keep_idxs = scores > keep_thresh  # find keeping indexes
-        detections = detections[:, 1, keep_idxs, :]  # select detections over threshold
-        detections = detections[:, :, [1, 2, 3, 4, 0]]  # reorder
+        filter_list = np.zeros((detections.shape[0]), dtype=object)
 
-        detections[:, :, [0, 2]] -= shift_w_scaled[:, np.newaxis]  # 0 or pad percent from left corner
-        detections[:, :, [1, 3]] -= shift_h_scaled[:, np.newaxis]  # 0 or pad percent from top
-        detections[:, :, :4] *= scale[:, np.newaxis]
+        for i in range(detections.shape[0]):
+            scores = detections[i, 1, :, 0]
+            keep_idxs = scores > keep_thresh  # find keeping indexes
 
-        return detections
+            filter_list[i] = detections[i, 1, keep_idxs, :]  # select over threshold
+            filter_list[i] = filter_list[i][:, [1, 2, 3, 4, 0]]  # reorder
+            filter_list[i][:, :4] *= scale
+
+        return filter_list
