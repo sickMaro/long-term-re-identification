@@ -20,7 +20,7 @@ INPUT:
 
 DATASETS:
   NAMES: ('market1501')
-  ROOT_DIR: ('../LUPerson/fast_reid/datasets/')
+  ROOT_DIR: ('../../dataset/')
 
 DATALOADER:
   SAMPLER: 'softmax_triplet'

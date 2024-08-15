@@ -5,7 +5,7 @@ import argparse
 import os
 sys.path.append('../methods/SOLIDER_REID')
 from utils.logger import setup_logger
-
+from config import cfg
 
 def parse_args():
     parser = argparse.ArgumentParser(description="ReID Baseline Training")

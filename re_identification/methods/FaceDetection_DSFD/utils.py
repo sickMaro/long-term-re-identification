@@ -9,6 +9,9 @@ def vis_detections(im, dets, thresh=0.5, show_text=True):
     inds = np.where(dets[:, -1] >= thresh)[0] if dets is not None else []
     if len(inds) == 0:
         return
+    x0, y0, x1, y1 = dets[0][:4].astype(int)
+    im2 = im[y0:y1, x0:x1]
+    print(im2.shape)
     im = im[:, :, (2, 1, 0)]
     fig, ax = plt.subplots(figsize=(12, 12))
     ax.imshow(im, aspect='equal')
@@ -83,9 +86,20 @@ def add_borders(curr_img, target_shape=(224, 224), fill_type=0):
 def resize_image(images, target_size, interpolation=3):
     length = len(images)
     images_lst = np.zeros((length, target_size[0], target_size[1], 3))
+    scale_lst = np.zeros((length, 4))
 
     for i, image in enumerate(images):
+        curr_img_size = image.shape[0:2]
+
         images_lst[i] = (
             cv2.resize(image, (target_size[1], target_size[0]), interpolation=interpolation))
 
-    return images_lst
+        resize_factor_y = target_size[1] / curr_img_size[1]
+        resize_factor_x = target_size[0] / curr_img_size[0]
+
+        scale_lst[i] = (target_size[1] / resize_factor_y,
+                        target_size[0] / resize_factor_x,
+                        target_size[1] / resize_factor_y,
+                        target_size[0] / resize_factor_x)
+
+    return images_lst, scale_lst

@@ -1,4 +1,5 @@
 import logging
+import sys
 
 import numpy as np
 import torch
@@ -137,6 +138,7 @@ class R1_mAP_eval:
 class CustomEvaluator:
     def __init__(self, num_query, max_rank=50, feat_norm=True, reranking=False):
         super(CustomEvaluator, self).__init__()
+        self.det_for_image = []
         self.imgs_paths = []
         self.trackids = []
         self.camids = []
@@ -153,14 +155,16 @@ class CustomEvaluator:
         self.camids = []
         self.trackids = []
         self.imgs_paths = []
+        self.det_for_image = []
 
     def update(self, output):  # called once for each batch
-        feat, timsetamp, camid, trackid, img_path = output
+        feat, timsetamp, camid, trackid, img_path, det_for_image = output
         self.feats.append(feat.cpu())
-        self.timestamps.extend(np.asarray(timsetamp))
-        self.camids.extend(np.asarray(camid))
-        self.trackids.extend(np.asarray(trackid))
+        self.timestamps.extend(timsetamp)
+        self.camids.extend(camid)
+        self.trackids.extend(trackid)
         self.imgs_paths.extend(img_path)
+        self.det_for_image.extend(det_for_image)
 
     def compute(self):  # called after each epoch
         logger = logging.getLogger('transreid.evaluate')
@@ -177,12 +181,30 @@ class CustomEvaluator:
 
         if self.reranking:
             logger.info('=> Enter reranking')
-            distmat = re_ranking(qf, gf, k1=20, k2=6, lambda_value=0.3, evaluator=self)
+            distmat = re_ranking(qf, gf, k1=20, k2=6, lambda_value=0.3)
 
         else:
             logger.info('=> Computing DistMat with euclidean_distance')
             distmat = euclidean_distance(qf, gf)
 
-        return distmat, self.timestamps[self.num_query:], self.camids[self.num_query:], self.trackids[
-                                                                                        self.num_query:], self.imgs_paths[
-                                                                                                          self.num_query:]
+        # print(distmat.shape)
+        # print(self.det_for_image)
+        # print(self.trackids)
+
+        if len(self.det_for_image) > 0:
+            best_dist = np.zeros((distmat.shape[0], len(self.det_for_image) - 1))
+            start = 0
+            for i, num_det in enumerate(self.det_for_image[self.num_query:]):
+                end = start + num_det
+                best_dist[:, i] = np.min(distmat[:, start:end], axis=1)
+                start = end
+
+            # print(best_dist.shape)
+        else:
+            best_dist = distmat
+
+        return (best_dist,
+                self.timestamps[self.num_query:],
+                self.camids[self.num_query:],
+                self.trackids[self.num_query:],
+                self.imgs_paths[self.num_query:])

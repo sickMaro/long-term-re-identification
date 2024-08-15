@@ -48,8 +48,7 @@ def val_collate_fn(batch):
 
 def custom_val_collate_fn(batch):
     imgs, timestamp, camids, trackids, img_paths = zip(*batch)
-    camids_batch = torch.tensor(camids, dtype=torch.int64)
-    return torch.stack(imgs, dim=0), timestamp, camids, camids_batch, trackids, img_paths
+    return torch.stack(imgs, dim=0), timestamp, camids, trackids, img_paths
 
 
 def make_dataloader(cfg):
@@ -134,12 +133,7 @@ def make_dataloader(cfg):
     return train_loader, train_loader_normal, val_loader, len(dataset.query), num_classes, cam_num
 
 
-def make_custom_dataloader(cfg, query_from_gui=None):
-    val_transforms = T.Compose([
-        T.Resize(cfg.INPUT.SIZE_TEST),
-        T.ToTensor(),
-        T.Normalize(mean=cfg.INPUT.PIXEL_MEAN, std=cfg.INPUT.PIXEL_STD)
-    ])
+def make_custom_dataloader(cfg, val_transforms=None, query_from_gui=None):
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
 

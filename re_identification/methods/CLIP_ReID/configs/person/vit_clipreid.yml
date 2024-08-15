@@ -70,7 +70,7 @@ TEST:
 DATASETS:
   NAMES: ('cmdm')
   SPECIFIC_NAME:
-  ROOT_DIR: ('../../../datasets/')
+  ROOT_DIR: ('../../../dataset/')
 
 OUTPUT_DIR: ''
 

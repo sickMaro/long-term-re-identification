@@ -5,7 +5,6 @@ import numpy as np
 
 from data.config import TestBaseTransform, widerface_640 as cfg
 from layers import Detect, get_prior_boxes, FEM, pa_multibox, mio_module, upsample_product
-from utils import resize_image
 
 
 class SSD(nn.Module):
@@ -137,20 +136,29 @@ class SSD(nn.Module):
             output = torch.cat((face_loc, face_conf), 2)
         return output
 
-    def detect_on_image(self, source_image, target_size, device, keep_thresh=0.3):
-        images = resize_image(source_image, target_size)
-        scale = np.array([target_size[1], target_size[0], target_size[1], target_size[0]])
-        x = torch.from_numpy(self.test_transform(images)).permute(0, 3, 1, 2).to(device)
+    def detect_on_images(self, images, scales, device, keep_thresh=0.3):
+
+        x = images.to(device)
         detections = self.forward(x).cpu().numpy()
 
         filter_list = np.zeros((detections.shape[0]), dtype=object)
-
         for i in range(detections.shape[0]):
             scores = detections[i, 1, :, 0]
             keep_idxs = scores > keep_thresh  # find keeping indexes
 
             filter_list[i] = detections[i, 1, keep_idxs, :]  # select over threshold
             filter_list[i] = filter_list[i][:, [1, 2, 3, 4, 0]]  # reorder
-            filter_list[i][:, :4] *= scale
+            filter_list[i][:, :4] *= scales
+
+            for bbox in filter_list[i]:
+                x0, y0, x1, y1 = bbox[:4]
+
+                multiplier_x = 0.8 if (x1 - x0) <= 33 else 0.6
+                multiplier_y = 0.8 if (y1 - y0) <= 33 else 0.5
+
+                bbox[0] = max(0, bbox[0] - ((x1 - x0) * multiplier_x))
+                bbox[1] = max(0, bbox[1] - ((y1 - y0) * multiplier_y))
+                bbox[2] = min(images[i].shape[2], bbox[2] + (x1 - x0) * multiplier_x)
+                bbox[3] = min(images[i].shape[1], bbox[3] + (y1 - y0) * multiplier_y)
 
         return filter_list

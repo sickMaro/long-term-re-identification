@@ -3,7 +3,7 @@ import os.path as osp
 
 from PIL import Image, ImageFile
 from torch.utils.data import Dataset
-
+import numpy as np
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
@@ -109,9 +109,9 @@ class ImageDataset(Dataset):
             img = read_image(img_path)
             data_to_return = pid, camid, img_path
         else:
-            image, timestamp, camid, trackid = self.dataset[index]
-
-            img, img_path = (read_image(image), image) if isinstance(image, str) else (image, '')
+            img_path, timestamp, camid, trackid = self.dataset[index]
+            img, img_path = (read_image(img_path), img_path) if isinstance(img_path, str) else (img_path, '')
+            # img = read_image(img_path)
             data_to_return = timestamp, camid, trackid, img_path
 
         if self.transform is not None:

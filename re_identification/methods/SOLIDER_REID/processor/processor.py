@@ -237,11 +237,11 @@ def do_custom_inference(cfg, model, val_loader, num_query):
 
     model.eval()
 
-    for n_iter, (img, timestamp, camid, camids, trackid, imgpath) in enumerate(val_loader):
+    for n_iter, (img, timestamp, camid, trackid, imgpath) in enumerate(val_loader):
         with torch.no_grad():
             img = img.to(device)
             feat, _ = model(img)
-            evaluator.update((feat, timestamp, camid, trackid, imgpath))
+            evaluator.update((feat, timestamp, camid, trackid, imgpath, []))
 
     logger.info('Starting evaluation')
     distmat, timestamps, camids, trackids, imgs_paths = evaluator.compute()

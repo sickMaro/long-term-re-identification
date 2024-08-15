@@ -26,7 +26,7 @@ import numpy as np
 import torch
 
 
-def re_ranking(probFea, galFea, k1, k2, lambda_value, local_distmat=None, only_local=False, evaluator=None):
+def re_ranking(probFea, galFea, k1, k2, lambda_value, local_distmat=None, only_local=False):
     # if feature vector is numpy, you should use 'torch.tensor' transform it to tensor
     query_num = probFea.size(0)
     all_num = query_num + galFea.size(0)
@@ -100,17 +100,5 @@ def re_ranking(probFea, galFea, k1, k2, lambda_value, local_distmat=None, only_l
     del V
     del jaccard_dist
     final_dist = final_dist[:query_num, query_num:]
-
-    '''sorted_indices = np.argsort(final_dist, axis=1)
-    print('Paths:')
-    for i in sorted_indices[0, :10]:
-        print(evaluator.imgs_paths[i])
-
-    print('dist')
-    print(final_dist[0, :10])
-
-    print('real')
-    for i in range(10):
-        print(evaluator.imgs_paths[i])'''
 
     return final_dist

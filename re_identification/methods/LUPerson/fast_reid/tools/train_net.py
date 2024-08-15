@@ -54,7 +54,7 @@ def custom_set(args, rerank=False, config_file='../configs/CMDM/mgn_R50_moco.yml
     args.resume = False
     args.config_file = config_file
     datasets = args.opts
-    base_opts = ['DATASETS.ROOT', '../../../../../datasets', 'TEST.RERANK.ENABLED', rerank,
+    base_opts = ['DATASETS.ROOT', '../../../../../dataset', 'TEST.RERANK.ENABLED', rerank,
                  'TEST.AQE.ENABLED', False, 'TEST.ROC_ENABLED', False]
     results = OrderedDict()
     logger = logging.getLogger(__name__)

@@ -6,11 +6,10 @@ from concurrent.futures import ThreadPoolExecutor
 from itertools import zip_longest
 from tkinter import ttk
 from cameras_manager import VideoImageManager
+from identification import ReIdentificationManager
 import cv2
 import numpy as np
 from PIL import Image, ImageTk
-sys.path.append('../methods/SOLIDER_REID')
-from integration_file import get_inference_results, get_model
 
 
 class Window:
@@ -25,6 +24,7 @@ class Window:
         self.__cfg = cfg
         self.__model = None
         self.video_image_manager = VideoImageManager()
+        self.re_id_manager = ReIdentificationManager(self.__cfg)
         self.__window: tk.Tk = tk.Tk()
         self.__configure_window(main=True)
         self.__results: list[tk.PhotoImage] = []
@@ -105,17 +105,12 @@ class Window:
         self.__lock = threading.Lock()
         self.__event = threading.Event()
         self.executor = ThreadPoolExecutor(max_workers=3)
-        future = self.executor.submit(get_model, self.__cfg)
-        future.add_done_callback(self.__set_model)
+        self.re_id_manager.load_solider_model()
+        self.re_id_manager.load_face_detection_model()
 
     def __del__(self):
         if self.__results:
             self.__results.clear()
-
-    def __set_model(self, future):
-        with self.__lock:
-            self.__model = future.result()
-        self.__event.set()
 
     def __configure_window(self, main: bool = False, multiplier: float = 1.5) -> None:
         if main:
@@ -357,11 +352,11 @@ class Window:
     def __free_resources_on_closure(self) -> None:
         self.video_image_manager.__del__()
 
-        directory = f'{self.__DIRECTORY}/datasets/my_dataset/query'
+        '''directory = f'{self.__DIRECTORY}/datasets/my_dataset/query'
         for filename in os.listdir(directory):
             file_path = os.path.join(directory, filename)
             if os.path.isfile(file_path):
-                os.remove(file_path)
+                os.remove(file_path)'''
 
         sys.exit()
 
@@ -374,13 +369,12 @@ class Window:
 
     def __show_results(self) -> None:
         if self.video_image_manager.get_current_selected_area() is not None:
-            self.__save_probe()
+            # self.__save_probe()
             self.__btn_identification.config(state="disabled")
 
-            self.__event.wait()
-            with self.__lock:
-                future = self.executor.submit(get_inference_results, self.__cfg, self.__model)
-                future.add_done_callback(self.__modify_view)
+            future = self.executor.submit(self.re_id_manager.inference_with_face_det_and_solider,
+                                          ImageTk.getimage(self.video_image_manager.get_current_selected_area()).convert('RGB'))
+            future.add_done_callback(self.__modify_view)
 
     def __save_probe(self) -> None:
         cropped_image = ImageTk.getimage(self.video_image_manager.get_current_selected_area())
@@ -416,8 +410,8 @@ class Window:
         if self.__results:
             self.__results.clear()
 
-        directory = f'{self.__DIRECTORY}/datasets/my_dataset/query'
+        '''directory = f'{self.__DIRECTORY}/datasets/my_dataset/query'
         for filename in os.listdir(directory):
             file_path = os.path.join(directory, filename)
             if os.path.isfile(file_path):
-                os.remove(file_path)
+                os.remove(file_path)'''
