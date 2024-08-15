@@ -52,6 +52,7 @@ class ReIdentificationManager:
         return val_loader, num_query, cam_num, track_num
 
     def inference_with_solider(self, query_from_gui):
+
         val_transforms = T.Compose([
             T.Resize(self.cfg.INPUT.SIZE_TEST),
             T.ToTensor(),
