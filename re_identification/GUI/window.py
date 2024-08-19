@@ -250,22 +250,10 @@ class Window:
         self.__canvas_cameras.config(scrollregion=self.__canvas_cameras.bbox("all"))
 
     def __create_results_frames(self, results: tuple) -> None:
-        distmat, timestamps, camids, trackids, imgs_paths = results
-        indixes = np.argsort(distmat, axis=1)
-        new_t = []
-        new_c = []
-        new_tr = []
-        new_i = []
-        for i in indixes[0]:
-            new_t.append(timestamps[i])
-            new_c.append(camids[i])
-            new_tr.append(trackids[i])
-            new_i.append(imgs_paths[i])
-        results = new_t, new_c, new_tr, new_i
 
         children_list: list[tk.Widget] = self.__frm_final_results.winfo_children()
         try:
-            for i, (timestamp, camid, trackid, img_path, child) in enumerate(
+            for i, (_, timestamp, camid, trackid, img_path, child) in enumerate(
                     zip_longest(*results, children_list[1:])):
                 if img_path is None:
                     child.destroy()
@@ -373,7 +361,7 @@ class Window:
             self.__btn_identification.config(state="disabled")
 
             future = self.executor.submit(self.re_id_manager.inference_with_face_det_and_solider,
-                                          ImageTk.getimage(self.video_image_manager.get_current_selected_area()).convert('RGB'))
+                                          np.array(ImageTk.getimage(self.video_image_manager.get_current_selected_area()).convert('RGB'))[:, :, (2, 1, 0)])
             future.add_done_callback(self.__modify_view)
 
     def __save_probe(self) -> None:

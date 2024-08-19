@@ -46,6 +46,7 @@ SOLVER:
 TEST:
   EVAL: True
   IMS_PER_BATCH: 4
+  USE_FACE_DETECTION: False
   RE_RANKING: True
   WEIGHT: './pretrained_models/swin_base_msmt17.pth'
   NECK_FEAT: 'before'

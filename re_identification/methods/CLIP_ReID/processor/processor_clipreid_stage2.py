@@ -200,8 +200,10 @@ def do_inference(cfg,
 
     evaluator = R1_mAP_eval(num_query, max_rank=50, feat_norm=cfg.TEST.FEAT_NORM)
 
-    # evaluator.reset()
-    if cfg.DATASETS.NAMES != 'cmdm':
+    start_dataset_name = cfg.TEST.WEIGHT.split('_')[-1].split('.')[0]
+    end_dataset_name = cfg.DATASETS.SPECIFIC_NAME
+
+    if start_dataset_name == end_dataset_name:
         dataset_name = cfg.DATASETS.NAMES
     else:
         dataset_name = 'specific_{}_to_{}'.format(
@@ -214,10 +216,7 @@ def do_inference(cfg,
     load_state(evaluator, logger, evaluator_path)
     start_idx = load_batch_index(logger, batch_index_path)
 
-    if cfg.TEST.RE_RANKING:
-        evaluator.reranking = True
-    else:
-        evaluator.reranking = False
+    evaluator.reranking = cfg.TEST.RE_RANKING
 
     if device:
         if torch.cuda.device_count() > 1:
@@ -262,7 +261,3 @@ def do_inference(cfg,
     for r in [1, 5, 10]:
         logger.info("CMC curve, Rank-{:<3}:{:.2%}".format(r, cmc[r - 1]))
     return cmc[0], cmc[4]
-
-
-if __name__ == '__main__':
-    print(os.getcwd())

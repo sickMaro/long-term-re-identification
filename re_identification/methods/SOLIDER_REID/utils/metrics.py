@@ -187,7 +187,7 @@ class CustomEvaluator:
             logger.info('=> Computing DistMat with euclidean_distance')
             distmat = euclidean_distance(qf, gf)
 
-        # print(distmat.shape)
+        print(distmat.shape)
         # print(self.det_for_image)
         # print(self.trackids)
 
@@ -199,12 +199,18 @@ class CustomEvaluator:
                 best_dist[:, i] = np.min(distmat[:, start:end], axis=1)
                 start = end
 
-            # print(best_dist.shape)
+            print(best_dist.shape)
         else:
             best_dist = distmat
 
+        indixes = np.squeeze(np.argsort(best_dist, axis=1))
+        self.timestamps = (np.array(self.timestamps[self.num_query:]))[indixes]
+        self.camids = (np.array(self.camids[self.num_query:]))[indixes]
+        self.trackids = (np.array(self.trackids[self.num_query:]))[indixes]
+        self.imgs_paths = (np.array(self.imgs_paths[self.num_query:]))[indixes]
+
         return (best_dist,
-                self.timestamps[self.num_query:],
-                self.camids[self.num_query:],
-                self.trackids[self.num_query:],
-                self.imgs_paths[self.num_query:])
+                self.timestamps,
+                self.camids,
+                self.trackids,
+                self.imgs_paths)

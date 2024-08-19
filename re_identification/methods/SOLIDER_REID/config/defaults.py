@@ -103,7 +103,9 @@ _C.INPUT.PADDING = 10
 _C.DATASETS = CN()
 # List of the dataset names for training, as present in paths_catalog.py
 _C.DATASETS.NAMES = ('market1501')
+# specific dataset name in case of using cmdm class
 _C.DATASETS.SPECIFIC_NAME = ''
+# value used to determinate which gallery images must be used for custom inference
 _C.DATASETS.DAY = ''
 # Root directory where datasets should be used (and downloaded if not found)
 _C.DATASETS.ROOT_DIR = ('../data')
@@ -193,7 +195,8 @@ _C.TEST.WEIGHT = ""
 _C.TEST.NECK_FEAT = 'after'
 # Whether feature is nomalized before test, if yes, it is equivalent to cosine distance
 _C.TEST.FEAT_NORM = 'yes'
-
+# whether using face detection model before classic re-id
+_C.TEST.USE_FACE_DETECTION = False
 # Name for saving the distmat after testing.
 _C.TEST.DIST_MAT = "dist_mat.npy"
 # Whether calculate the eval score option: 'True', 'False'

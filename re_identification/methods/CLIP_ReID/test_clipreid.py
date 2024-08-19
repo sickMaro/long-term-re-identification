@@ -22,9 +22,12 @@ if __name__ == "__main__":
     cfg.merge_from_list(args.opts)
     cfg.freeze()
 
-    if cfg.DATASETS.SPECIFIC_NAME:
-        output_dir = './log/cross_dataset/{}_to_{}/'.format(
-            cfg.TEST.WEIGHT.split('_')[1].split('/')[-1], cfg.DATASETS.SPECIFIC_NAME)
+    start_dataset_name = cfg.TEST.WEIGHT.split('_')[-1].split('.')[0]
+    end_dataset_name = cfg.DATASETS.SPECIFIC_NAME
+
+    if start_dataset_name == end_dataset_name:
+        output_dir = './log/cross_dataset/{}_to_{}/'.format(start_dataset_name,
+                                                            end_dataset_name)
     else:
         output_dir = cfg.OUTPUT_DIR
     if output_dir and not os.path.exists(output_dir):

@@ -1,16 +1,21 @@
 import logging
+import os
 import sys
 import time
 
+import numpy as np
 import torch
 import torch.distributed as dist
 import torch.nn as nn
+import torchvision.transforms as T
 from torch.cuda import amp
 from utils.meter import AverageMeter
 from utils.metrics import R1_mAP_eval, CustomEvaluator
 
 sys.path.append('../')
-from my_utils.save_functions import *
+sys.path.append('../../../')
+from methods.FaceDetection_DSFD.utils import extract_faces
+from my_utils.save_functions import save_state, load_state, save_batch_index, load_batch_index
 
 
 def do_train(cfg,
@@ -152,8 +157,22 @@ def do_train(cfg,
                 torch.cuda.empty_cache()
 
 
+def move_models_to_device_and_eval_mode(models, device='cuda'):
+    device = 'cpu' if device is None else device
+
+    if torch.cuda.device_count() > 1:
+        print('Using {} GPUs for inference'.format(torch.cuda.device_count()))
+        models = [nn.DataParallel(model) for model in models if model]
+
+    for model in models:
+        if model:
+            model.to(device)
+            model.eval()
+
+
 def do_inference(cfg,
                  model,
+                 face_detection_model,
                  val_loader,
                  num_query):
     device = "cuda"
@@ -162,12 +181,14 @@ def do_inference(cfg,
 
     evaluator = R1_mAP_eval(num_query, max_rank=50, feat_norm=cfg.TEST.FEAT_NORM, reranking=cfg.TEST.RE_RANKING)
 
-    # evaluator.reset()
-    if cfg.DATASETS.NAMES != 'cmdm':
+    start_dataset_name = cfg.TEST.WEIGHT.split('_')[-1].split('.')[0]
+    end_dataset_name = cfg.DATASETS.SPECIFIC_NAME
+
+    if start_dataset_name == end_dataset_name:
         dataset_name = cfg.DATASETS.NAMES
     else:
         dataset_name = 'specific_{}_to_{}'.format(
-            cfg.TEST.WEIGHT.split('_')[-1].split('.')[0], cfg.DATASETS.SPECIFIC_NAME)
+            start_dataset_name, end_dataset_name)
     test_type = cfg.OUTPUT_DIR.split('/')[-1]
 
     evaluator_path = 'evaluation_log/evaluation_state_{}_{}.pkl'.format(dataset_name, test_type)
@@ -176,10 +197,7 @@ def do_inference(cfg,
     load_state(evaluator, logger, evaluator_path)
     start_idx = load_batch_index(logger, batch_index_path)
 
-    if cfg.TEST.RE_RANKING:
-        evaluator.reranking = True
-    else:
-        evaluator.reranking = False
+    evaluator.reranking = cfg.TEST.RE_RANKING
 
     if device:
         if torch.cuda.device_count() > 1:
@@ -221,7 +239,8 @@ def do_inference(cfg,
     return cmc[0], cmc[4]
 
 
-def do_custom_inference(cfg, model, val_loader, num_query):
+'''
+def do_custom_inference(cfg, model, face_detection_model, val_loader, num_query):
     device = "cuda"
     logger = logging.getLogger("transreid.test")
     logger.info("Enter inferencing")
@@ -229,13 +248,7 @@ def do_custom_inference(cfg, model, val_loader, num_query):
     evaluator = CustomEvaluator(num_query, max_rank=50, feat_norm=cfg.TEST.FEAT_NORM, reranking=cfg.TEST.RE_RANKING)
     evaluator.reset()
 
-    if device:
-        if torch.cuda.device_count() > 1:
-            print('Using {} GPUs for inference'.format(torch.cuda.device_count()))
-            model = nn.DataParallel(model)
-        model.to(device)
-
-    model.eval()
+    move_models_to_device_and_eval_mode((model, face_detection_model), device)
 
     for n_iter, (img, timestamp, camid, trackid, imgpath) in enumerate(val_loader):
         with torch.no_grad():
@@ -246,3 +259,74 @@ def do_custom_inference(cfg, model, val_loader, num_query):
     logger.info('Starting evaluation')
     distmat, timestamps, camids, trackids, imgs_paths = evaluator.compute()
     return distmat, timestamps, camids, trackids, imgs_paths
+'''
+
+
+def do_custom_inference(cfg, model, face_detection_model, val_loader, num_query, query_from_gui):
+    detections_per_image = []
+    device = "cuda"
+    logger = logging.getLogger("transreid.test")
+    logger.info("Enter inferencing")
+
+    evaluator = CustomEvaluator(num_query, max_rank=50, feat_norm=cfg.TEST.FEAT_NORM, reranking=cfg.TEST.RE_RANKING)
+    evaluator.reset()
+
+    move_models_to_device_and_eval_mode((model, face_detection_model), device)
+
+    current_scales = (cfg.INPUT.SIZE_TEST[1], cfg.INPUT.SIZE_TEST[0],
+                      cfg.INPUT.SIZE_TEST[1], cfg.INPUT.SIZE_TEST[0])
+
+    for n_iter, (img, timestamp, camid, trackid, imgpath) in enumerate(val_loader):
+        batch = img, timestamp, camid, trackid, imgpath
+        if face_detection_model:
+            logger.info(f'Batch : {n_iter + 1}')
+            logger.info(f'image batch: {img.shape}')
+            result = do_inference_using_face_detection(face_detection_model,
+                                                       batch,
+                                                       current_scales,
+                                                       device,
+                                                       query_from_gui)
+            if result:
+                imgs, timestamp, camid, trackid, imgpath, detections_per_image = result
+
+                face_transforms = T.Compose([
+                    T.Resize((65, 55)),
+                    T.ToTensor(),
+                    T.Normalize(mean=cfg.INPUT.PIXEL_MEAN, std=cfg.INPUT.PIXEL_STD)
+                ])
+
+                img = torch.stack([face_transforms(face) for face in imgs], dim=0)
+
+                logger.info('Got batch faces, starting inference on faces')
+            else:
+                logger.info('No face detected')
+                continue
+
+        logger.info(f'face batch: {img.shape}')
+        with torch.no_grad():
+            img = img.to(device)
+            feat, _ = model(img)
+            evaluator.update((feat, timestamp, camid, trackid, imgpath, detections_per_image))
+
+    logger.info('Starting evaluation')
+    distmat, timestamps, camids, trackids, imgs_paths = evaluator.compute()
+    return distmat, timestamps, camids, trackids, imgs_paths
+
+
+def do_inference_using_face_detection(model, batch, scale, device, query_from_gui):
+    img, timestamp, camid, trackid, imgpath = batch
+    detections = model.detect_on_images(img, scale, device, keep_thresh=0.8)
+
+    indexes = np.where([det.size > 0 for det in detections])[0]
+    if len(indexes) > 0:
+        detections = detections[indexes]
+        trackid = np.array(trackid)[indexes]
+        camid = np.array(camid)[indexes]
+        imgpath = np.array(imgpath)[indexes]
+        timestamp = np.array(timestamp)[indexes]
+
+        img, detections_per_image = extract_faces((scale[1], scale[0]), detections, imgpath, query_from_gui)
+
+        return img, timestamp, camid, trackid, imgpath, detections_per_image
+    else:
+        return None

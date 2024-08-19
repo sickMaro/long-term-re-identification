@@ -1,11 +1,16 @@
 import argparse
 import os
 
+import torch
+
 from config import cfg
 from .datasets import make_dataloader
 from model import make_model
 from processor import do_inference
 from utils.logger import setup_logger
+import sys
+sys.path.append('../methods/FaceDetection_DSFD')
+from face_ssd_infer import SSD
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ReID Baseline Training")
@@ -22,9 +27,12 @@ if __name__ == "__main__":
     cfg.merge_from_list(args.opts)
     cfg.freeze()
 
-    if cfg.DATASETS.SPECIFIC_NAME:
-        output_dir = './log/cross_dataset/{}_to_{}/'.format(
-            cfg.TEST.WEIGHT.split('_')[-1].split('.')[0], cfg.DATASETS.SPECIFIC_NAME)
+    start_dataset_name = cfg.TEST.WEIGHT.split('_')[-1].split('.')[0]
+    end_dataset_name = cfg.DATASETS.SPECIFIC_NAME
+
+    if start_dataset_name == end_dataset_name:
+        output_dir = './log/cross_dataset/{}_to_{}/'.format(start_dataset_name,
+                                                            end_dataset_name)
     else:
         output_dir = cfg.OUTPUT_DIR
     if output_dir and not os.path.exists(output_dir):
@@ -50,6 +58,13 @@ if __name__ == "__main__":
     if cfg.TEST.WEIGHT != '':
         model.load_param(cfg.TEST.WEIGHT)
 
+    if cfg.TEST.USE_FACE_DETECTION:
+        face_detection_model = SSD("test")
+        path = '../methods/FaceDetection_DSFD/pretrained_models/WIDERFace_DSFD_RES152.pth'
+        face_detection_model.load_state_dict(torch.load(path))
+    else:
+        face_detection_model = None
+
     if cfg.DATASETS.NAMES == 'VehicleID':
         for trial in range(10):
             train_loader, train_loader_normal, val_loader, num_query, num_classes, camera_num, view_num = make_dataloader(
@@ -70,5 +85,6 @@ if __name__ == "__main__":
     else:
         do_inference(cfg,
                      model,
+                     face_detection_model,
                      val_loader,
                      num_query)

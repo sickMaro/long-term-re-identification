@@ -133,7 +133,7 @@ def make_dataloader(cfg):
     return train_loader, train_loader_normal, val_loader, len(dataset.query), num_classes, cam_num
 
 
-def make_custom_dataloader(cfg, val_transforms=None, query_from_gui=None):
+def make_custom_dataloader(cfg, val_transforms=None, query_from_gui=None, use_cv2=False):
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
 
@@ -142,10 +142,13 @@ def make_custom_dataloader(cfg, val_transforms=None, query_from_gui=None):
     cam_num = dataset.num_gallery_cams
     tracks_num = dataset.num_gallery_tracks
 
-    if query_from_gui:
+    if query_from_gui is not None:
         dataset.query = [(query_from_gui, 0, 0, 0)]
+    else:
+        if len(dataset.query) == 0:
+            raise RuntimeError('Empty query dataset')
 
-    val_set = ID(dataset.query + dataset.gallery, val_transforms, custom=True)
+    val_set = ID(dataset.query + dataset.gallery, val_transforms, custom=True, use_cv2=use_cv2)
 
     val_loader = DataLoader(
         val_set, batch_size=cfg.TEST.IMS_PER_BATCH, shuffle=False, num_workers=num_workers,

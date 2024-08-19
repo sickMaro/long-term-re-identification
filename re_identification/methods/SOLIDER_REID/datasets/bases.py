@@ -1,13 +1,13 @@
 import logging
 import os.path as osp
 
+import cv2
 from PIL import Image, ImageFile
 from torch.utils.data import Dataset
-import numpy as np
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
-def read_image(img_path):
+def read_image(img_path, use_cv2=False):
     """Keep reading image until succeed.
     This can avoid IOError incurred by heavy IO process."""
     got_img = False
@@ -15,7 +15,10 @@ def read_image(img_path):
         raise IOError("{} does not exist".format(img_path))
     while not got_img:
         try:
-            img = Image.open(img_path).convert('RGB')
+            if not use_cv2:
+                img = Image.open(img_path).convert('RGB')
+            else:
+                img = cv2.imread(img_path, cv2.IMREAD_COLOR)
             got_img = True
         except IOError:
             print("IOError incurred when reading '{}'. Will redo. Don't worry. Just chill.".format(img_path))
@@ -94,10 +97,11 @@ class BaseImageDataset(BaseDataset):
 
 
 class ImageDataset(Dataset):
-    def __init__(self, dataset, transform=None, custom=False):
+    def __init__(self, dataset, transform=None, custom=False, use_cv2=False):
         self.dataset = dataset
         self.transform = transform
         self.custom = custom
+        self.use_cv2 = use_cv2
 
     def __len__(self):
         return len(self.dataset)
@@ -106,11 +110,11 @@ class ImageDataset(Dataset):
 
         if not self.custom:
             img_path, pid, camid = self.dataset[index]
-            img = read_image(img_path)
+            img = read_image(img_path, False)
             data_to_return = pid, camid, img_path
         else:
             img_path, timestamp, camid, trackid = self.dataset[index]
-            img, img_path = (read_image(img_path), img_path) if isinstance(img_path, str) else (img_path, '')
+            img, img_path = (read_image(img_path, self.use_cv2), img_path) if isinstance(img_path, str) else (img_path, '')
             # img = read_image(img_path)
             data_to_return = timestamp, camid, trackid, img_path
 

@@ -1,6 +1,10 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from PIL import Image
+import sys
+sys.path.append('../methods/SOLIDER_REID')
+from datasets.bases import read_image
 
 
 def vis_detections(im, dets, thresh=0.5, show_text=True):
@@ -103,3 +107,27 @@ def resize_image(images, target_size, interpolation=3):
                         target_size[0] / resize_factor_x)
 
     return images_lst, scale_lst
+
+
+def extract_faces(img_size, detections, img_path, query_from_gui):
+    faces = []
+    detections_per_image = []
+    for i in range(detections.shape[0]):
+        if img_path[i] != '':
+            image = read_image(img_path[i])
+        else:
+            if query_from_gui is None:
+                raise RuntimeError('Query from gui is None')
+            image = Image.fromarray(query_from_gui)
+
+        image = image.resize((img_size[1], img_size[0]))
+
+        for j in range(detections[i].shape[0]):
+            x0, y0, x1, y1 = detections[i][j, :4].astype(int)
+            # face = image[i, :, y0:y1, x0:x1]
+            face = image.crop((x0, y0, x1, y1))
+            # face = image[y0:y1, x0:x1]
+            faces.append(face)
+        detections_per_image.append(detections[i].shape[0])
+
+    return faces, detections_per_image

@@ -11,7 +11,6 @@ class CustomTransform(object):
         self.scale_from_original = scale_from_original
 
     def __call__(self, image):
-        image = np.array(image)[:, :, (2, 1, 0)]
 
         curr_img_size = image.shape[:2]
         image = cv2.resize(image,
