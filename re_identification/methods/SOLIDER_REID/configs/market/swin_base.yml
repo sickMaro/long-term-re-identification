@@ -19,8 +19,8 @@ INPUT:
   PIXEL_STD: [ 0.5, 0.5, 0.5 ]
 
 DATASETS:
-  NAMES: ('cmdm')
-  SPECIFIC_NAME:
+  NAMES: ('mydataset')
+  DAY: 'one'
   ROOT_DIR: ('../../dataset/')
 
 DATALOADER:
@@ -45,7 +45,8 @@ SOLVER:
 
 TEST:
   EVAL: True
-  IMS_PER_BATCH: 32
+  IMS_PER_BATCH: 4
+  USE_FACE_DETECTION: False
   RE_RANKING: False
   WEIGHT: ''
   NECK_FEAT: 'before'

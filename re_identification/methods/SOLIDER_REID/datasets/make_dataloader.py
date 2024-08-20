@@ -15,7 +15,7 @@ from .my_dataset import MyDataset
 from .sampler import RandomIdentitySampler, RandomIdentitySampler_IdUniform
 from .sampler_ddp import RandomIdentitySampler_DDP
 
-sys.path.append('../methods/LUPerson/fast_reid/')
+sys.path.append('../LUPerson/fast_reid/')
 from fastreid.data.datasets.cmdm import *
 from fastreid.data.datasets.bases import *
 
@@ -51,7 +51,7 @@ def custom_val_collate_fn(batch):
     return torch.stack(imgs, dim=0), timestamp, camids, trackids, img_paths
 
 
-def make_dataloader(cfg):
+def make_dataloader(cfg, val_transforms):
     train_transforms = T.Compose([
         T.Resize(cfg.INPUT.SIZE_TRAIN, interpolation=3),
         T.RandomHorizontalFlip(p=cfg.INPUT.PROB),
@@ -62,11 +62,11 @@ def make_dataloader(cfg):
         RandomErasing(probability=cfg.INPUT.RE_PROB, mode='pixel', max_count=1, device='cpu'),
     ])
 
-    val_transforms = T.Compose([
+    '''val_transforms = T.Compose([
         T.Resize(cfg.INPUT.SIZE_TEST),
         T.ToTensor(),
         T.Normalize(mean=cfg.INPUT.PIXEL_MEAN, std=cfg.INPUT.PIXEL_STD)
-    ])
+    ])'''
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
 
@@ -120,7 +120,8 @@ def make_dataloader(cfg):
     else:
         print('unsupported sampler! expected softmax or triplet but got {}'.format(cfg.SAMPLER))
 
-    val_set = ID(dataset.query + dataset.gallery, val_transforms)
+    use_cv2 = True if cfg.TEST.USE_FACE_DETECTION else False
+    val_set = ID(dataset.query + dataset.gallery, val_transforms, use_cv2=use_cv2)
 
     val_loader = DataLoader(
         val_set, batch_size=cfg.TEST.IMS_PER_BATCH, shuffle=False, num_workers=num_workers,

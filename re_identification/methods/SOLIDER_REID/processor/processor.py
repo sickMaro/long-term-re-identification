@@ -13,6 +13,7 @@ from utils.meter import AverageMeter
 from utils.metrics import R1_mAP_eval, CustomEvaluator
 
 sys.path.append('../')
+sys.path.append('../../')
 sys.path.append('../../../')
 from methods.FaceDetection_DSFD.utils import extract_faces
 from my_utils.save_functions import save_state, load_state, save_batch_index, load_batch_index
@@ -205,7 +206,7 @@ def do_inference(cfg,
     detections_per_image = []
 
     if start_idx < len(val_loader):
-        for n_iter, (img, *batch_info, imgpath) in enumerate(val_loader):
+        for n_iter, (img, *batch_info) in enumerate(val_loader):
             if n_iter <= start_idx:
                 continue  # Skip the batches we've already processed
             if face_detection_model:
@@ -227,8 +228,8 @@ def do_inference(cfg,
             with torch.no_grad():
                 img = img.to(device)
                 feat, _ = model(img)
-                evaluator.update((feat, *batch_info, detections_per_image))
-                img_path_list.extend(imgpath)
+                evaluator.update((feat, *batch_info[:-1], detections_per_image))
+                img_path_list.extend(batch_info[-1])
 
             if n_iter % 20 == 0:
                 logger.info('Saving current state of evaluation...')

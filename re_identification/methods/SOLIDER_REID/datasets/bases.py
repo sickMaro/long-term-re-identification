@@ -110,7 +110,7 @@ class ImageDataset(Dataset):
 
         if not self.custom:
             img_path, pid, camid = self.dataset[index]
-            img = read_image(img_path, False)
+            img = read_image(img_path, self.use_cv2)
             data_to_return = pid, camid, img_path
         else:
             img_path, timestamp, camid, trackid = self.dataset[index]

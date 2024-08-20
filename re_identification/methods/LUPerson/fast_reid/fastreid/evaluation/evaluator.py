@@ -81,7 +81,7 @@ def load_batch_index(logger, path):
             batch_index = pickle.load(f)
             logger.info("Resuming from batch index {}".format(batch_index))
             return batch_index
-    return 0
+    return -1
 
 
 def inference_on_dataset(model, data_loader, evaluator):
