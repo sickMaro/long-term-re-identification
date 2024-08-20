@@ -42,8 +42,8 @@ def train_collate_fn(batch):
 
 def val_collate_fn(batch):
     imgs, pids, camids, img_paths = zip(*batch)
-    camids_batch = torch.tensor(camids, dtype=torch.int64)
-    return torch.stack(imgs, dim=0), pids, camids, camids_batch, img_paths
+    # camids_batch = torch.tensor(camids, dtype=torch.int64)
+    return torch.stack(imgs, dim=0), pids, camids, img_paths
 
 
 def custom_val_collate_fn(batch):

@@ -1,14 +1,13 @@
 import os
 import sys
-import threading
 import tkinter as tk
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, Future
 from itertools import zip_longest
 from tkinter import ttk
+
 from cameras_manager import VideoImageManager
 from identification import ReIdentificationManager
 import cv2
-import numpy as np
 from PIL import Image, ImageTk
 
 
@@ -18,7 +17,6 @@ class Window:
     __WIDTH: int = 1
     __HEIGHT: int = 1
     __SCROLLBAR_WIDTH: int = 20
-    __DIRECTORY: str = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 
     def __init__(self, cfg) -> None:
         self.__cfg = cfg
@@ -102,11 +100,8 @@ class Window:
         self.__start_x: int = -1
         self.__start_y: int = -1
 
-        self.__lock = threading.Lock()
-        self.__event = threading.Event()
         self.executor = ThreadPoolExecutor(max_workers=3)
-        self.re_id_manager.load_solider_model()
-        self.re_id_manager.load_face_detection_model()
+        self.re_id_manager.load_models()
 
     def __del__(self):
         if self.__results:
@@ -237,8 +232,7 @@ class Window:
 
             video_canvas.create_image((0, 0), anchor=tk.NW, image=photo)
 
-            video_canvas.bind("<Button-1>", lambda _, v=video, t=camera_title:
-            self.__update_main_video(v, t))
+            video_canvas.bind("<Button-1>", lambda _, v=video, t=camera_title: self.__update_main_video(v, t))
 
             sep = ttk.Separator(self.__frm_final_cameras, orient="horizontal")
             sep.grid(row=i, column=0, columnspan=2, sticky="sew")
@@ -324,7 +318,6 @@ class Window:
 
     def __on_drag(self, event: tk.Event) -> None:
         if self.__cnv_video is not None:
-
             x0 = int(min(self.__start_x, self.__cnv_video.canvasx(event.x)))
             x1 = int(max(self.__start_x, self.__cnv_video.canvasx(event.x)))
             y0 = int(min(self.__start_y, self.__cnv_video.canvasy(event.y)))
@@ -339,13 +332,6 @@ class Window:
 
     def __free_resources_on_closure(self) -> None:
         self.video_image_manager.__del__()
-
-        '''directory = f'{self.__DIRECTORY}/datasets/my_dataset/query'
-        for filename in os.listdir(directory):
-            file_path = os.path.join(directory, filename)
-            if os.path.isfile(file_path):
-                os.remove(file_path)'''
-
         sys.exit()
 
     def __on_closing(self) -> None:
@@ -357,19 +343,13 @@ class Window:
 
     def __show_results(self) -> None:
         if self.video_image_manager.get_current_selected_area() is not None:
-            # self.__save_probe()
             self.__btn_identification.config(state="disabled")
 
-            future = self.executor.submit(self.re_id_manager.inference_with_face_det_and_solider,
-                                          np.array(ImageTk.getimage(self.video_image_manager.get_current_selected_area()).convert('RGB'))[:, :, (2, 1, 0)])
+            query = ImageTk.getimage(self.video_image_manager.get_current_selected_area()).convert('RGB')
+            future = self.executor.submit(self.re_id_manager.do_inference, query)
             future.add_done_callback(self.__modify_view)
 
-    def __save_probe(self) -> None:
-        cropped_image = ImageTk.getimage(self.video_image_manager.get_current_selected_area())
-        name = f'{self.video_image_manager.get_current_video_title()}_MILLIS_0_TRK-ID_0_TIMESTAMP_0-0-0.png'
-        cropped_image.save(f'{self.__DIRECTORY}/datasets/my_dataset/query/{name}')
-
-    def __modify_view(self, future):
+    def __modify_view(self, future: Future) -> None:
         results = future.result()
         self.__lbl_title.config(text=Window.__RESULT_TITLE)
         self.__configure_window(multiplier=1.5)
@@ -397,9 +377,3 @@ class Window:
         self.__canvas_cameras.yview_moveto(0)
         if self.__results:
             self.__results.clear()
-
-        '''directory = f'{self.__DIRECTORY}/datasets/my_dataset/query'
-        for filename in os.listdir(directory):
-            file_path = os.path.join(directory, filename)
-            if os.path.isfile(file_path):
-                os.remove(file_path)'''

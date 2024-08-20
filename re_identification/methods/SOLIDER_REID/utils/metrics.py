@@ -6,6 +6,20 @@ import torch
 from utils.reranking import re_ranking
 
 
+def get_best_matrix(distmat, det_for_image, num_query):
+    if len(det_for_image) > 0:
+        best_dist = np.zeros((distmat.shape[0], len(det_for_image) - 1))
+        start = 0
+        for i, num_det in enumerate(det_for_image[num_query:]):
+            end = start + num_det
+            best_dist[:, i] = np.min(distmat[:, start:end], axis=1)
+            start = end
+
+        print(best_dist.shape)
+    else:
+        best_dist = distmat
+    return best_dist
+
 def euclidean_distance(qf, gf):
     m = qf.shape[0]
     n = gf.shape[0]
@@ -102,12 +116,14 @@ class R1_mAP_eval:
         self.feats = []
         self.pids = []
         self.camids = []
+        self.detections_per_image = []
 
     def update(self, output):  # called once for each batch
-        feat, pid, camid = output
+        feat, pid, camid, detections_per_image = output
         self.feats.append(feat.cpu())
         self.pids.extend(np.asarray(pid))
         self.camids.extend(np.asarray(camid))
+        self.detections_per_image.extend(np.asarray(detections_per_image))
 
     def compute(self):  # called after each epoch
         feats = torch.cat(self.feats, dim=0)
@@ -130,9 +146,11 @@ class R1_mAP_eval:
         else:
             print('=> Computing DistMat with euclidean_distance')
             distmat = euclidean_distance(qf, gf)
-        cmc, mAP = eval_func(distmat, q_pids, g_pids, q_camids, g_camids)
 
-        return cmc, mAP, distmat, self.pids, self.camids, qf, gf
+        best_dist = get_best_matrix(distmat, self.detections_per_image, self.num_query)
+        cmc, mAP = eval_func(best_dist, q_pids, g_pids, q_camids, g_camids)
+
+        return cmc, mAP, best_dist, self.pids, self.camids, qf, gf
 
 
 class CustomEvaluator:
@@ -188,20 +206,8 @@ class CustomEvaluator:
             distmat = euclidean_distance(qf, gf)
 
         print(distmat.shape)
-        # print(self.det_for_image)
-        # print(self.trackids)
 
-        if len(self.det_for_image) > 0:
-            best_dist = np.zeros((distmat.shape[0], len(self.det_for_image) - 1))
-            start = 0
-            for i, num_det in enumerate(self.det_for_image[self.num_query:]):
-                end = start + num_det
-                best_dist[:, i] = np.min(distmat[:, start:end], axis=1)
-                start = end
-
-            print(best_dist.shape)
-        else:
-            best_dist = distmat
+        best_dist = get_best_matrix(distmat, self.det_for_image, self.num_query)
 
         indixes = np.squeeze(np.argsort(best_dist, axis=1))
         self.timestamps = (np.array(self.timestamps[self.num_query:]))[indixes]
