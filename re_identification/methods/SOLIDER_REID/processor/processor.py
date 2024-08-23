@@ -183,10 +183,13 @@ def do_inference(cfg,
     evaluator = R1_mAP_eval(num_query, max_rank=50, feat_norm=cfg.TEST.FEAT_NORM, reranking=cfg.TEST.RE_RANKING)
 
     start_dataset_name = cfg.TEST.WEIGHT.split('_')[-1].split('.')[0]
-    end_dataset_name = cfg.DATASETS.SPECIFIC_NAME
+    if cfg.DATASETS.SPECIFIC_NAME:
+        end_dataset_name = cfg.DATASETS.SPECIFIC_NAME
+    else:
+        end_dataset_name = cfg.DATASETS.NAMES
 
     if start_dataset_name == end_dataset_name:
-        dataset_name = cfg.DATASETS.NAMES
+        dataset_name = start_dataset_name
     else:
         dataset_name = 'specific_{}_to_{}'.format(
             start_dataset_name, end_dataset_name)
@@ -293,7 +296,7 @@ def get_faces(model, batch, cfg, device, query_from_gui):
     img, *batch_info, img_path = batch
     w_h = cfg.INPUT.SIZE_TEST[::-1]
     scale = (*w_h, *w_h)
-    detections = model.detect_on_images(img, scale, device, keep_thresh=0.8)
+    detections = model.detect_on_images(img, scale, device, keep_thresh=0.7)
 
     indexes = np.where([det.size > 0 for det in detections])[0]
     if len(indexes) > 0:
@@ -305,7 +308,7 @@ def get_faces(model, batch, cfg, device, query_from_gui):
         img, detections_per_image = extract_faces(w_h[::-1], detections, img_path, query_from_gui)
 
         face_transforms = T.Compose([
-            T.Resize((65, 55)),
+            T.Resize((70, 60)),
             T.ToTensor(),
             T.Normalize(mean=cfg.INPUT.PIXEL_MEAN, std=cfg.INPUT.PIXEL_STD)
         ])

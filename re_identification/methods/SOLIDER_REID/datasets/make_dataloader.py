@@ -12,6 +12,7 @@ from .market1501 import Market1501
 from .mm import MM
 from .msmt17 import MSMT17
 from .my_dataset import MyDataset
+from .last import LaST
 from .sampler import RandomIdentitySampler, RandomIdentitySampler_IdUniform
 from .sampler_ddp import RandomIdentitySampler_DDP
 
@@ -24,7 +25,8 @@ __factory = {
     'msmt17': MSMT17,
     'mm': MM,
     'cmdm': CMDM,
-    'mydataset': MyDataset
+    'mydataset': MyDataset,
+    'last': LaST
 }
 
 logger = logging.getLogger('transreid')
@@ -52,6 +54,8 @@ def custom_val_collate_fn(batch):
 
 
 def make_dataloader(cfg, val_transforms):
+    use_cv2 = True if cfg.TEST.USE_FACE_DETECTION else False
+
     train_transforms = T.Compose([
         T.Resize(cfg.INPUT.SIZE_TRAIN, interpolation=3),
         T.RandomHorizontalFlip(p=cfg.INPUT.PROB),
@@ -61,12 +65,6 @@ def make_dataloader(cfg, val_transforms):
         T.Normalize(mean=cfg.INPUT.PIXEL_MEAN, std=cfg.INPUT.PIXEL_STD),
         RandomErasing(probability=cfg.INPUT.RE_PROB, mode='pixel', max_count=1, device='cpu'),
     ])
-
-    '''val_transforms = T.Compose([
-        T.Resize(cfg.INPUT.SIZE_TEST),
-        T.ToTensor(),
-        T.Normalize(mean=cfg.INPUT.PIXEL_MEAN, std=cfg.INPUT.PIXEL_STD)
-    ])'''
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
 
@@ -78,7 +76,7 @@ def make_dataloader(cfg, val_transforms):
             if isinstance(dataset, ImageDataset):
                 dataset.show_test(logger_name='transreid')
     train_set = ID(dataset.train, train_transforms)
-    train_set_normal = ID(dataset.train, val_transforms)
+    train_set_normal = ID(dataset.train, val_transforms, use_cv2=use_cv2)
     num_classes = dataset.num_train_pids
     cam_num = dataset.num_train_cams
     # view_num = dataset.num_train_vids
@@ -120,7 +118,6 @@ def make_dataloader(cfg, val_transforms):
     else:
         print('unsupported sampler! expected softmax or triplet but got {}'.format(cfg.SAMPLER))
 
-    use_cv2 = True if cfg.TEST.USE_FACE_DETECTION else False
     val_set = ID(dataset.query + dataset.gallery, val_transforms, use_cv2=use_cv2)
 
     val_loader = DataLoader(

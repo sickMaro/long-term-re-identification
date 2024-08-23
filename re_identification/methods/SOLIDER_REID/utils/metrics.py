@@ -8,17 +8,28 @@ from utils.reranking import re_ranking
 
 def get_best_matrix(distmat, det_for_image, num_query):
     if len(det_for_image) > 0:
-        best_dist = np.zeros((distmat.shape[0], len(det_for_image) - 1))
+        query_detections = det_for_image[:num_query]
+        gallery_detection = det_for_image[num_query:]
+        best_rows = np.zeros((len(query_detections), distmat.shape[1]))
+
         start = 0
-        for i, num_det in enumerate(det_for_image[num_query:]):
+        for i, num_det in enumerate(query_detections):
             end = start + num_det
-            best_dist[:, i] = np.min(distmat[:, start:end], axis=1)
+            best_rows[i] = np.min(distmat[start:end], axis=0)
             start = end
 
-        print(best_dist.shape)
+        best_dist_matrix = np.zeros((len(query_detections), len(gallery_detection)))
+
+        start = 0
+        for i, num_det in enumerate(gallery_detection):
+            end = start + num_det
+            best_dist_matrix[:, i] = np.min(best_rows[:, start:end], axis=1)
+            start = end
+
     else:
-        best_dist = distmat
-    return best_dist
+        best_dist_matrix = distmat
+    return best_dist_matrix
+
 
 def euclidean_distance(qf, gf):
     m = qf.shape[0]
@@ -131,14 +142,16 @@ class R1_mAP_eval:
             print("The test feature is normalized")
             feats = torch.nn.functional.normalize(feats, dim=1, p=2)  # along channel
         # query
-        qf = feats[:self.num_query]
+        # qf = feats[:self.num_query]
+        qf = feats[:sum(self.detections_per_image[:self.num_query])]
         q_pids = np.asarray(self.pids[:self.num_query])
         q_camids = np.asarray(self.camids[:self.num_query])
         # gallery
-        gf = feats[self.num_query:]
+        # gf = feats[self.num_query:]
+        gf = feats[sum(self.detections_per_image[:self.num_query]):]
         g_pids = np.asarray(self.pids[self.num_query:])
-
         g_camids = np.asarray(self.camids[self.num_query:])
+
         if self.reranking:
             print('=> Enter reranking')
             distmat = re_ranking(qf, gf, k1=20, k2=6, lambda_value=0.3)
@@ -148,6 +161,7 @@ class R1_mAP_eval:
             distmat = euclidean_distance(qf, gf)
 
         best_dist = get_best_matrix(distmat, self.detections_per_image, self.num_query)
+        print(best_dist.shape)
         cmc, mAP = eval_func(best_dist, q_pids, g_pids, q_camids, g_camids)
 
         return cmc, mAP, best_dist, self.pids, self.camids, qf, gf

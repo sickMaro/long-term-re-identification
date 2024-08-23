@@ -25,7 +25,7 @@ if __name__ == "__main__":
     start_dataset_name = cfg.TEST.WEIGHT.split('_')[-1].split('.')[0]
     end_dataset_name = cfg.DATASETS.SPECIFIC_NAME
 
-    if start_dataset_name == end_dataset_name:
+    if start_dataset_name != end_dataset_name:
         output_dir = './log/cross_dataset/{}_to_{}/'.format(start_dataset_name,
                                                             end_dataset_name)
     else:
