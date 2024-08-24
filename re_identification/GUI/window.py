@@ -5,8 +5,6 @@ from concurrent.futures import ThreadPoolExecutor, Future
 from itertools import zip_longest
 from tkinter import ttk
 
-from cameras_manager import VideoImageManager
-from identification import ReIdentificationManager
 import cv2
 from PIL import Image, ImageTk
 
@@ -18,20 +16,19 @@ class Window:
     __HEIGHT: int = 1
     __SCROLLBAR_WIDTH: int = 20
 
-    def __init__(self, cfg) -> None:
+    def __init__(self, cfg, video_manager=None, re_id_manager=None) -> None:
         self.__cfg = cfg
-        self.__model = None
-        self.video_image_manager = VideoImageManager()
-        self.re_id_manager = ReIdentificationManager(self.__cfg)
+        self.__video_image_manager = video_manager
+        self.__re_id_manager = re_id_manager
         self.__window: tk.Tk = tk.Tk()
         self.__configure_window(main=True)
         self.__results: list[tk.PhotoImage] = []
 
-        self.video_image_manager.load_images_and_cameras(self.__cfg.DATASETS.DAY)
+        self.__video_image_manager.load_images_and_cameras(self.__cfg.DATASETS.DAY)
 
         self.play_button, self.pause_button, self.volume_button = (
-            self.video_image_manager.get_buttons_images())
-        self.cameras = self.video_image_manager.get_cameras()
+            self.__video_image_manager.get_buttons_images())
+        self.cameras = self.__video_image_manager.get_cameras()
 
         self.__video: cv2.VideoCapture = ...
 
@@ -43,7 +40,7 @@ class Window:
         Window.__WIDTH, Window.__HEIGHT = (Window.__get_frm_video_width(self),
                                            Window.__get_frm_video_height(self))
 
-        self.video_image_manager.set_video_dimensions(Window.__WIDTH, Window.__HEIGHT)
+        self.__video_image_manager.set_video_dimensions(Window.__WIDTH, Window.__HEIGHT)
 
         self.__lbl_title: tk.Label = tk.Label(self.__window, fg="black", bg="light grey",
                                               text=Window.__MAIN_TITLE, height=2, relief="raised",
@@ -101,7 +98,6 @@ class Window:
         self.__start_y: int = -1
 
         self.executor = ThreadPoolExecutor(max_workers=3)
-        self.re_id_manager.load_models()
 
     def __del__(self):
         if self.__results:
@@ -181,21 +177,21 @@ class Window:
         if self.__btn_play_video["image"] is not None:
             if self.__btn_play_video["image"] == str(self.play_button):
                 self.__btn_play_video["image"] = self.pause_button
-                self.video_image_manager.set_paused(False)
+                self.__video_image_manager.set_paused(False)
                 self.__read_video()
             else:
                 self.__btn_play_video["image"] = self.play_button
-                self.video_image_manager.set_paused(True)
+                self.__video_image_manager.set_paused(True)
 
     def __read_video(self):
-        photo = self.video_image_manager.read_video()
+        photo = self.__video_image_manager.read_video()
         if photo:
             self.__cnv_video.create_image((0, 0), anchor=tk.NW, image=photo)
             self.__progress()
         else:
             self.__button_pressed()
 
-        if not self.video_image_manager.is_paused():
+        if not self.__video_image_manager.is_paused():
             self.__cnv_video.after(8, self.__read_video)
 
     def __progress(self) -> None:
@@ -205,7 +201,7 @@ class Window:
 
     def __seek_video(self, event: tk.Event) -> None:
         video_percentage = event.x / self.__progress_bar.winfo_width()
-        self.video_image_manager.set_video_progress(video_percentage)
+        self.__video_image_manager.set_video_progress(video_percentage)
         self.__progress()
 
     @staticmethod
@@ -223,7 +219,7 @@ class Window:
     def __create_cameras_frames(self) -> None:
         pad_x, pad_y = 13, 20
         for i, (camera_title, video, photo) in enumerate(self.cameras):
-            width, height = self.video_image_manager.get_thumb_dimension()
+            width, height = self.__video_image_manager.get_thumb_dimension()
             video_canvas = tk.Canvas(self.__frm_final_cameras, height=height, width=width)
             if i == 0:
                 self.__update_main_video(video, camera_title)
@@ -304,7 +300,7 @@ class Window:
             inner_frm_children_list[i + 1].config(text=text)
 
     def __update_main_video(self, video: cv2.VideoCapture, camera_title: str) -> None:
-        self.__video = self.video_image_manager.change_main_video(video, camera_title)
+        self.__video = self.__video_image_manager.change_main_video(video, camera_title)
         self.__progress_bar["value"] = 0
         self.__progress_bar["length"] = self.__video.get(cv2.CAP_PROP_FRAME_COUNT)
 
@@ -326,12 +322,12 @@ class Window:
             self.__cnv_video.delete("drag_rectangle")
             self.__cnv_video.create_rectangle(x0, y0, x1, y1, outline="white", fill="", tags="drag_rectangle")
 
-            photo = self.video_image_manager.selected_area((x0, x1, y0, y1))
+            photo = self.__video_image_manager.selected_area((x0, x1, y0, y1))
 
             self.__cnv_video.create_image((0, 0), anchor=tk.NW, image=photo)
 
     def __free_resources_on_closure(self) -> None:
-        self.video_image_manager.__del__()
+        self.__video_image_manager.__del__()
         sys.exit()
 
     def __on_closing(self) -> None:
@@ -342,11 +338,11 @@ class Window:
         self.__window.mainloop()
 
     def __show_results(self) -> None:
-        if self.video_image_manager.get_current_selected_area() is not None:
+        if self.__video_image_manager.get_current_selected_area() is not None:
             self.__btn_identification.config(state="disabled")
 
-            query = ImageTk.getimage(self.video_image_manager.get_current_selected_area()).convert('RGB')
-            future = self.executor.submit(self.re_id_manager.do_inference, query)
+            query = ImageTk.getimage(self.__video_image_manager.get_current_selected_area()).convert('RGB')
+            future = self.executor.submit(self.__video_image_manager.do_inference, query)
             future.add_done_callback(self.__modify_view)
 
     def __modify_view(self, future: Future) -> None:
@@ -355,7 +351,7 @@ class Window:
         self.__configure_window(multiplier=1.5)
         self.__frm_video.grid_remove()
         self.__frm_probe.grid()
-        self.__lbl_probe.config(image=self.video_image_manager.get_current_selected_area())
+        self.__lbl_probe.config(image=self.__video_image_manager.get_current_selected_area())
         self.__canvas_cameras.delete("cameras")
         self.__canvas_cameras.create_window((0, 0), anchor=tk.NW, window=self.__frm_final_results, tags="result")
         self.__canvas_cameras.bind("<Configure>", self.__canvas_configure)

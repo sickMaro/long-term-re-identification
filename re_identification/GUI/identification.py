@@ -60,7 +60,7 @@ class ReIdentificationManager:
         if self.cfg.TEST.USE_FACE_DETECTION:
             query_from_gui = np.array(query_from_gui)[:, :, (2, 1, 0)]
             self.use_cv2 = True
-            custom_transform = CustomTransform(self.cfg.INPUT.SIZE_TEST, scale_from_original=False)
+            custom_transform = CustomTransform(self.cfg.INPUT.SIZE_TEST)
             val_transforms = T.Compose([
                 custom_transform,
                 self.face_detection_model.test_transform,

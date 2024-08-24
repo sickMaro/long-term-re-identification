@@ -58,7 +58,7 @@ if __name__ == "__main__":
         path = '../FaceDetection_DSFD/pretrained_models/WIDERFace_DSFD_RES152.pth'
         face_detection_model.load_state_dict(torch.load(path))
 
-        custom_transform = CustomTransform(cfg.INPUT.SIZE_TEST, scale_from_original=False)
+        custom_transform = CustomTransform(cfg.INPUT.SIZE_TEST)
         val_transforms = T.Compose([
             custom_transform,
             face_detection_model.test_transform,

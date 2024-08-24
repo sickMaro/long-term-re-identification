@@ -115,7 +115,6 @@ def extract_faces(img_size, detections, img_path, query_from_gui):
     for i in range(detections.shape[0]):
         if img_path[i] != '':
             image = read_image(img_path[i])
-            print(image.size())
         else:
             if query_from_gui is None:
                 raise RuntimeError('Query from gui is None')

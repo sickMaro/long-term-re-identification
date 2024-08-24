@@ -1,18 +1,27 @@
+import argparse
+import os
 import sys
 
 from window import Window
-import argparse
-import os
+
 sys.path.append('../methods/SOLIDER_REID')
 from utils.logger import setup_logger
 from config import cfg
+from cameras_manager import VideoImageManager
+from identification import ReIdentificationManager
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="ReID Baseline Training")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="ReID on SAT-Cameras")
     parser.add_argument(
-        "--config_file", default="configs/msmt17/swin_base.yml", help="path to config file", type=str
-    )
-    parser.add_argument("opts", help="Modify config options using the command-line", default=None,
+        "--config_file",
+        default="../methods/SOLIDER_REID/configs/msmt17/swin_base.yml",
+        help="path to config file",
+        type=str)
+
+    parser.add_argument("opts",
+                        help="Modify config options using the command-line",
+                        default=None,
                         nargs=argparse.REMAINDER)
 
     args = parser.parse_args()
@@ -38,10 +47,8 @@ def parse_args():
 
     os.environ['CUDA_VISIBLE_DEVICES'] = cfg.MODEL.DEVICE_ID
 
-    return cfg
-
-
-if __name__ == "__main__":
-    cfg = parse_args()
-    window = Window(cfg)
+    video_manager = VideoImageManager()
+    re_id_manager = ReIdentificationManager(cfg)
+    re_id_manager.load_models()
+    window = Window(cfg, video_manager=video_manager, re_id_manager=re_id_manager)
     window.show_window()

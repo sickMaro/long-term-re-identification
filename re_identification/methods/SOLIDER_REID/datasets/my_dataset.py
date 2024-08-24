@@ -1,13 +1,9 @@
 import glob
 import logging
-import os
 import os.path as osp
 import re
 from datetime import datetime
-
 from .bases import BaseImageDataset
-
-EXTS = ['*.jpg', '*.png', '*.jpeg', '*.bmp', '*.ppm']
 
 
 class MyDataset(BaseImageDataset):
@@ -44,36 +40,20 @@ class MyDataset(BaseImageDataset):
 
     def __process_dir(self, dir_path):
         if 'query' in dir_path:
-            imgs_path = self.get_imgs_paths_query(dir_path)
+            imgs_path = glob.glob(osp.join(dir_path, '*.png'))
         else:
-            imgs_path = self.get_imgs_paths_gallery(dir_path, self.day)
+            if self.day == 'both':
+                imgs_path = glob.glob(osp.join(dir_path, '*/*.png'))
+            else:
+                imgs_path = glob.glob(osp.join(dir_path, f'gallery_day_{self.day}/*.png'))
 
         pattern = re.compile(r'SAT(?:_day\d+)?_Camera(\d+)_MILLIS_(\d+)_TRK-ID_(\d+)_TIMESTAMP_(\d+-\d+-\d+)')
         dataset = []
         for img_path in sorted(imgs_path):
-            camid, _, trkid, timestamp = pattern.search(img_path).groups()
+            camid, _, trkid, timestamp = pattern.search(osp.basename(img_path)).groups()
             camid = int(re.sub(r'_day\d+', '', camid))
 
             timestamp = datetime.strptime(timestamp, "%H-%M-%S").strftime("%H:%M:%S")
             dataset.append((img_path, timestamp, camid, trkid))
 
         return dataset
-
-    @staticmethod
-    def get_imgs_paths_query(dir_path):
-        imgs_path = []
-        for ext in EXTS:
-            imgs_path.extend(glob.glob(osp.join(dir_path, ext)))
-
-        return imgs_path
-
-    @staticmethod
-    def get_imgs_paths_gallery(dir_path, day):
-        imgs_path = []
-        for ext in EXTS:
-            for root, _, _ in os.walk(dir_path):
-                if not root.endswith(day) and day != 'both':
-                    continue
-                imgs_path.extend(glob.glob(osp.join(root, ext)))
-
-        return imgs_path
