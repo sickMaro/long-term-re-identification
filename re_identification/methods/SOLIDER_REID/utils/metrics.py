@@ -192,11 +192,11 @@ class CustomEvaluator:
     def update(self, output):  # called once for each batch
         feat, timsetamp, camid, trackid, img_path, det_for_image = output
         self.feats.append(feat.cpu())
-        self.timestamps.extend(timsetamp)
-        self.camids.extend(camid)
-        self.trackids.extend(trackid)
-        self.imgs_paths.extend(img_path)
-        self.det_for_image.extend(det_for_image)
+        self.timestamps.extend(np.asarray(timsetamp))
+        self.camids.extend(np.asarray(camid))
+        self.trackids.extend(np.asarray(trackid))
+        self.imgs_paths.extend(np.asarray(img_path))
+        self.det_for_image.extend(np.asarray(det_for_image))
 
     def compute(self):  # called after each epoch
         logger = logging.getLogger('transreid.evaluate')

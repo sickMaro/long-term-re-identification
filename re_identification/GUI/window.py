@@ -249,21 +249,24 @@ class Window:
                     child.destroy()
                     children_list.remove(child)
                 else:
-                    path = img_path
-                    if os.path.isfile(path):
-                        img = ImageTk.PhotoImage(Image.open(path).resize((92, 192)))
-                        self.__results.append(img)
-                        number = "N: " + str(i + 1)
-                        id_ = "ID: " + trackid.astype(str)
-                        camera = "CAM: SAT_Camera" + camid.astype(str)
-                        time = "TIME: " + timestamp.astype(str)
+                    img = ...
+                    if isinstance(img_path, str):
+                        if os.path.isfile(img_path):
+                            img = ImageTk.PhotoImage(Image.open(img_path).resize((92, 192)))
 
-                        if child is None:
-                            Window.__create_result_frame(self.__frm_final_results, img, i,
-                                                         number, id_, camera, time)
-                        else:
-                            Window.__update_result_frames(child, img, number, id_, camera, time)
+                    else:
+                        img = ImageTk.PhotoImage(Image.fromarray(img_path).resize((92, 192)))
+                    self.__results.append(img)
+                    number = "N: " + str(i + 1)
+                    id_ = "ID: " + trackid.astype(str)
+                    camera = "CAM: SAT_Camera" + camid.astype(str)
+                    time = "TIME: " + timestamp.astype(str)
 
+                    if child is None:
+                        Window.__create_result_frame(self.__frm_final_results, img, i,
+                                                     number, id_, camera, time)
+                    else:
+                        Window.__update_result_frames(child, img, number, id_, camera, time)
             self.__frm_final_results.update_idletasks()
             self.__canvas_cameras.config(scrollregion=self.__canvas_cameras.bbox("all"))
 
@@ -342,7 +345,7 @@ class Window:
             self.__btn_identification.config(state="disabled")
 
             query = ImageTk.getimage(self.__video_image_manager.get_current_selected_area()).convert('RGB')
-            future = self.executor.submit(self.__video_image_manager.do_inference, query)
+            future = self.executor.submit(self.__re_id_manager.do_inference, query)
             future.add_done_callback(self.__modify_view)
 
     def __modify_view(self, future: Future) -> None:

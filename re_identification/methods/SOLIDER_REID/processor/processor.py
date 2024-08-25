@@ -205,7 +205,7 @@ def do_inference(cfg,
 
     move_models_to_device_and_eval_mode((model, face_detection_model), device)
 
-    img_path_list = []
+    # img_path_list = []
     detections_per_image = []
 
     if start_idx < len(val_loader):
@@ -232,7 +232,7 @@ def do_inference(cfg,
                 img = img.to(device)
                 feat, _ = model(img)
                 evaluator.update((feat, *batch_info[:-1], detections_per_image))
-                img_path_list.extend(batch_info[-1])
+                # img_path_list.extend(batch_info[-1])
 
             if n_iter % 20 == 0:
                 logger.info('Saving current state of evaluation...')
@@ -293,28 +293,26 @@ def do_custom_inference(cfg, model, face_detection_model, val_loader, num_query,
 
 
 def get_faces(model, batch, cfg, device, query_from_gui):
-    img, *batch_info, img_path = batch
-    w_h = cfg.INPUT.SIZE_TEST[::-1]
-    scale = (*w_h, *w_h)
-    detections = model.detect_on_images(img, scale, device, keep_thresh=0.7)
+    img, *batch_info, original_image = batch
+    keep_index, faces, detections_per_image = model.detect_on_images_and_extract(img,
+                                                                                 original_image,
+                                                                                 device,
+                                                                                 keep_thresh=0.7)
 
-    indexes = np.where([det.size > 0 for det in detections])[0]
-    if len(indexes) > 0:
-        detections = detections[indexes]
-        img_path = np.array(img_path)[indexes]
+    if any(keep_index):
+        original_image = np.array([np.array(image) for i, image in enumerate(original_image) if keep_index[i]], dtype=object)
 
-        batch_info = [np.array(info)[indexes] for info in batch_info]
+        batch_info = [np.array(info)[keep_index] for info in batch_info]
 
-        img, detections_per_image = extract_faces(w_h[::-1], detections, img_path, query_from_gui)
-
+        shape = (70, 60) if query_from_gui else (150, 150)
         face_transforms = T.Compose([
-            T.Resize((70, 60)),
+            T.Resize(shape),
             T.ToTensor(),
             T.Normalize(mean=cfg.INPUT.PIXEL_MEAN, std=cfg.INPUT.PIXEL_STD)
         ])
 
-        img = torch.stack([face_transforms(face) for face in img], dim=0)
+        img = torch.stack([face_transforms(face) for face in faces], dim=0)
 
-        return img, *batch_info, img_path, detections_per_image
+        return img, *batch_info, original_image, detections_per_image
     else:
         return None

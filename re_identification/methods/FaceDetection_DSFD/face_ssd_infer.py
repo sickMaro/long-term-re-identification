@@ -2,14 +2,13 @@ import torch
 import torchvision
 import torch.nn as nn
 import numpy as np
-
 from data.config import TestBaseTransform, widerface_640 as cfg
 from layers import Detect, get_prior_boxes, FEM, pa_multibox, mio_module, upsample_product
 
 
 class SSD(nn.Module):
 
-    def __init__(self, phase, nms_thresh=0.3, nms_conf_thresh=0.01):
+    def __init__(self, phase, nms_thresh=0.5, nms_conf_thresh=0.7):
         super(SSD, self).__init__()
 
         self.phase = phase
@@ -148,17 +147,56 @@ class SSD(nn.Module):
 
             filter_list[i] = detections[i, 1, keep_idxs, :]  # select over threshold
             filter_list[i] = filter_list[i][:, [1, 2, 3, 4, 0]]  # reorder
-            filter_list[i][:, :4] *= scales
+            filter_list[i][:, :4] *= scales[i]
 
             for bbox in filter_list[i]:
                 x0, y0, x1, y1 = bbox[:4]
 
-                multiplier_x = 0.8 if (x1 - x0) <= 33 else 0.6
-                multiplier_y = 0.8 if (y1 - y0) <= 33 else 0.5
+                multiplier_x = 1.5 if (x1 - x0) <= 33 else 0.8
+                multiplier_y = 1.5 if (y1 - y0) <= 33 else 0.8
 
                 bbox[0] = max(0, bbox[0] - ((x1 - x0) * multiplier_x))
                 bbox[1] = max(0, bbox[1] - ((y1 - y0) * multiplier_y))
-                bbox[2] = min(images[i].shape[2], bbox[2] + (x1 - x0) * multiplier_x)
-                bbox[3] = min(images[i].shape[1], bbox[3] + (y1 - y0) * multiplier_y)
+                bbox[2] = min(scales[i][0], bbox[2] + ((x1 - x0) * multiplier_x))
+                bbox[3] = min(scales[i][1], bbox[3] + ((y1 - y0) * multiplier_y))
 
         return filter_list
+
+    def detect_on_images_and_extract(self, images, original_images, device, keep_thresh=0.3):
+
+        x = images.to(device)
+        detections = self.forward(x).cpu().numpy()
+
+        faces = []
+        detections_per_image = []
+        batch_info_to_keep = []
+
+        for i in range(detections.shape[0]):
+            scores = detections[i, 1, :, 0]
+            keep_idxs = scores > keep_thresh  # find keeping indexes
+            not_skip = any(keep_idxs)
+            batch_info_to_keep.append(not_skip)
+
+            if not_skip:
+                det = detections[i, 1, keep_idxs, :]  # select over threshold
+                det = det[:, [1, 2, 3, 4, 0]]  # reorder
+                scale = (*original_images[i].size, *original_images[i].size)
+                det[:, :4] *= scale
+
+                for bbox in det:
+                    x0, y0, x1, y1 = bbox[:4]
+
+                    # Compute multipliers
+                    multiplier_x = 1.5 if (x1 - x0) <= 33 else 0.8
+                    multiplier_y = 1.5 if (y1 - y0) <= 33 else 0.8
+
+                    # Expand bbox
+                    x0 = int(max(0, x0 - (x1 - x0) * multiplier_x))
+                    y0 = int(max(0, y0 - (y1 - y0) * multiplier_y))
+                    x1 = int(min(scale[0], x1 + (x1 - x0) * multiplier_x))
+                    y1 = int(min(scale[1], y1 + (y1 - y0) * multiplier_y))
+
+                    faces.append(original_images[i].crop((x0, y0, x1, y1)))
+                detections_per_image.append(det.shape[0])
+
+        return batch_info_to_keep, faces, detections_per_image

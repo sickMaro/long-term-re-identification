@@ -1,13 +1,13 @@
 import logging
 import os.path as osp
 
-import cv2
+import numpy as np
 from PIL import Image, ImageFile
 from torch.utils.data import Dataset
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
-def read_image(img_path, use_cv2=False):
+def read_image(img_path):
     """Keep reading image until succeed.
     This can avoid IOError incurred by heavy IO process."""
     got_img = False
@@ -15,10 +15,7 @@ def read_image(img_path, use_cv2=False):
         raise IOError("{} does not exist".format(img_path))
     while not got_img:
         try:
-            if not use_cv2:
-                img = Image.open(img_path).convert('RGB')
-            else:
-                img = cv2.imread(img_path, cv2.IMREAD_COLOR)
+            img = Image.open(img_path).convert('RGB')
             got_img = True
         except IOError:
             print("IOError incurred when reading '{}'. Will redo. Don't worry. Just chill.".format(img_path))
@@ -110,15 +107,21 @@ class ImageDataset(Dataset):
 
         if not self.custom:
             img_path, pid, camid = self.dataset[index]
-            img = read_image(img_path, self.use_cv2)
-            data_to_return = pid, camid, img_path
+            original_image = read_image(img_path)
+            data_to_return = pid, camid
         else:
             img_path, timestamp, camid, trackid = self.dataset[index]
-            img, img_path = (read_image(img_path, self.use_cv2), img_path) if isinstance(img_path, str) else (img_path, '')
-            # img = read_image(img_path)
-            data_to_return = timestamp, camid, trackid, img_path
+            original_image, img_path = (read_image(img_path), img_path) if isinstance(img_path, str) else (img_path, '')
+            data_to_return = timestamp, camid, trackid
+
+        if self.use_cv2:
+            img = np.array(original_image)[:, :, (2, 1, 0)]
+            last = original_image
+        else:
+            img = original_image
+            last = img_path
 
         if self.transform is not None:
             img = self.transform(img)
 
-        return img, *data_to_return
+        return img, *data_to_return, last

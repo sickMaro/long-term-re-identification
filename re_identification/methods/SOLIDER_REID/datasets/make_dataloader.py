@@ -17,6 +17,7 @@ from .sampler import RandomIdentitySampler, RandomIdentitySampler_IdUniform
 from .sampler_ddp import RandomIdentitySampler_DDP
 
 sys.path.append('../LUPerson/fast_reid/')
+sys.path.append('../methods/LUPerson/fast_reid/')
 from fastreid.data.datasets.cmdm import *
 from fastreid.data.datasets.bases import *
 

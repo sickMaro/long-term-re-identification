@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torchvision.transforms as T
-from PIL import ImageTk
+from PIL import ImageTk, Image
 
 from transformation import CustomTransform
 
@@ -56,17 +56,10 @@ class ReIdentificationManager:
 
         return val_loader, num_query, cam_num, track_num
 
-    def do_inference(self, query_from_gui: ImageTk) -> None:
+    def do_inference(self, query_from_gui: Image) -> None:
         if self.cfg.TEST.USE_FACE_DETECTION:
-            query_from_gui = np.array(query_from_gui)[:, :, (2, 1, 0)]
             self.use_cv2 = True
-            custom_transform = CustomTransform(self.cfg.INPUT.SIZE_TEST)
-            val_transforms = T.Compose([
-                custom_transform,
-                self.face_detection_model.test_transform,
-                T.ToTensor(),
-            ])
-
+            val_transforms = CustomTransform(self.cfg.INPUT.SIZE_TEST, self.face_detection_model.test_transform)
         else:
             self.face_detection_model = None
             self.use_cv2 = False

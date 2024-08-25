@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import sys
 sys.path.append('../methods/SOLIDER_REID')
+sys.path.append('../SOLIDER_REID')
 from datasets.bases import read_image
 
 
@@ -98,36 +99,33 @@ def resize_image(images, target_size, interpolation=3):
         images_lst[i] = (
             cv2.resize(image, (target_size[1], target_size[0]), interpolation=interpolation))
 
-        resize_factor_y = target_size[1] / curr_img_size[1]
-        resize_factor_x = target_size[0] / curr_img_size[0]
+        resize_factor_x = target_size[1] / curr_img_size[1]
+        resize_factor_y = target_size[0] / curr_img_size[0]
 
-        scale_lst[i] = (target_size[1] / resize_factor_y,
-                        target_size[0] / resize_factor_x,
-                        target_size[1] / resize_factor_y,
-                        target_size[0] / resize_factor_x)
+        scale_lst[i] = (target_size[1] / resize_factor_x,
+                        target_size[0] / resize_factor_y,
+                        target_size[1] / resize_factor_x,
+                        target_size[0] / resize_factor_y)
 
     return images_lst, scale_lst
 
 
-def extract_faces(img_size, detections, img_path, query_from_gui):
+def extract_faces(detections, original_image):
     faces = []
     detections_per_image = []
-    for i in range(detections.shape[0]):
-        if img_path[i] != '':
-            image = read_image(img_path[i])
-        else:
-            if query_from_gui is None:
-                raise RuntimeError('Query from gui is None')
-            image = Image.fromarray(query_from_gui)
+    for i, image in enumerate(original_image):
+        img_detections = detections[i]
+        num_faces = img_detections.shape[0]
 
-        image = image.resize((img_size[1], img_size[0]))
+        img_np = np.array(image)
 
-        for j in range(detections[i].shape[0]):
-            x0, y0, x1, y1 = detections[i][j, :4].astype(int)
-            # face = image[i, :, y0:y1, x0:x1]
-            face = image.crop((x0, y0, x1, y1))
-            # face = image[y0:y1, x0:x1]
+        boxes = img_detections[:, :4].astype(int)
+        for box in boxes:
+            x0, y0, x1, y1 = box
+            face = img_np[y0:y1, x0:x1]  # Slicing dell'immagine
+            face = Image.fromarray(face)
             faces.append(face)
-        detections_per_image.append(detections[i].shape[0])
+
+        detections_per_image.append(num_faces)
 
     return faces, detections_per_image

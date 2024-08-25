@@ -53,5 +53,5 @@ widerface_640 = {
     # test
     'nms_thresh': 0.3,
     'conf_thresh': 0.01,
-    'num_thresh': 5000,
+    'num_thresh': 100,
 }
