@@ -300,7 +300,7 @@ def get_faces(model, batch, cfg, device, query_from_gui):
                                                                                  keep_thresh=0.7)
 
     if any(keep_index):
-        original_image = np.array([np.array(image) for i, image in enumerate(original_image) if keep_index[i]], dtype=object)
+        original_image = [np.array(image) for i, image in enumerate(original_image) if keep_index[i]]
 
         batch_info = [np.array(info)[keep_index] for info in batch_info]
 

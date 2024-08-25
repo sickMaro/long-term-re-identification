@@ -8,7 +8,7 @@ from layers import Detect, get_prior_boxes, FEM, pa_multibox, mio_module, upsamp
 
 class SSD(nn.Module):
 
-    def __init__(self, phase, nms_thresh=0.5, nms_conf_thresh=0.7):
+    def __init__(self, phase, nms_thresh=0.3, nms_conf_thresh=0.01):
         super(SSD, self).__init__()
 
         self.phase = phase

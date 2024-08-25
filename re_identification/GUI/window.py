@@ -52,14 +52,15 @@ class Window:
         self.__scrollbar_camera: tk.Scrollbar = tk.Scrollbar(self.__frm_cameras, orient=tk.VERTICAL, bd=20,
                                                              width=Window.__SCROLLBAR_WIDTH, bg="light grey")
 
-        self.__frm_video_bar: tk.Frame = tk.Frame(self.__frm_video, bg="gray", height=15)
+        self.__frm_video_bar: tk.Frame = tk.Frame(self.__frm_video, bg="light gray", height=15)
 
         self.__btn_play_video: tk.Button = tk.Button(self.__frm_video_bar, image=str(self.play_button),
                                                      relief="flat", height=20, width=20,
-                                                     command=self.__button_pressed)
+                                                     command=self.__button_pressed,
+                                                     bg='light grey')
 
         self.__btn_video_volume: tk.Button = tk.Button(self.__frm_video_bar, image=str(self.volume_button),
-                                                       relief="flat", height=20, width=20)
+                                                       relief="flat", height=20, width=20, bg='light grey')
 
         self.__frm_container: tk.Frame = tk.Frame(self.__frm_cameras, highlightbackground="gray", border=2,
                                                   bg="gray")
@@ -73,8 +74,13 @@ class Window:
         self.__lbl_result_title: tk.Label = tk.Label(self.__frm_final_results, text="Matches",
                                                      font=("Arial", 13), fg="black", bg="white")
 
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure("TProgressbar", troughcolor='light grey', background='green',
+                        borderwidth=3, bordercolor='gray')
+
         self.__progress_bar: ttk.Progressbar = ttk.Progressbar(self.__frm_video_bar, orient='horizontal',
-                                                               mode='determinate')
+                                                               mode='determinate', style='TProgressbar')
 
         self.__btn_identification: tk.Button = tk.Button(self.__frm_video, text="Identify", bg="dark grey",
                                                          width=50, relief="ridge", command=self.__show_results)

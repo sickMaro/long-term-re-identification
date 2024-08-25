@@ -142,13 +142,19 @@ class R1_mAP_eval:
             print("The test feature is normalized")
             feats = torch.nn.functional.normalize(feats, dim=1, p=2)  # along channel
         # query
+        if len(self.detections_per_image) > 0:
+            total_q = sum(self.detections_per_image[:self.num_query])
+        else:
+            total_q = self.num_query
+
         # qf = feats[:self.num_query]
-        qf = feats[:sum(self.detections_per_image[:self.num_query])]
+        qf = feats[:total_q]
         q_pids = np.asarray(self.pids[:self.num_query])
         q_camids = np.asarray(self.camids[:self.num_query])
+
         # gallery
         # gf = feats[self.num_query:]
-        gf = feats[sum(self.detections_per_image[:self.num_query]):]
+        gf = feats[total_q:]
         g_pids = np.asarray(self.pids[self.num_query:])
         g_camids = np.asarray(self.camids[self.num_query:])
 
@@ -195,7 +201,7 @@ class CustomEvaluator:
         self.timestamps.extend(np.asarray(timsetamp))
         self.camids.extend(np.asarray(camid))
         self.trackids.extend(np.asarray(trackid))
-        self.imgs_paths.extend(np.asarray(img_path))
+        self.imgs_paths.extend(np.asarray(img_path, dtype=object))
         self.det_for_image.extend(np.asarray(det_for_image))
 
     def compute(self):  # called after each epoch
@@ -205,11 +211,17 @@ class CustomEvaluator:
         if self.feat_norm:
             logger.info("The test feature is normalized")
             feats = torch.nn.functional.normalize(feats, dim=1, p=2)  # along channel
+
+        if len(self.det_for_image) > 0:
+            total_q = sum(self.det_for_image[:self.num_query])
+        else:
+            total_q = self.num_query
+
         # query
-        qf = feats[:self.num_query]
+        qf = feats[:total_q]
 
         # gallery
-        gf = feats[self.num_query:]
+        gf = feats[total_q:]
 
         if self.reranking:
             logger.info('=> Enter reranking')
@@ -219,15 +231,14 @@ class CustomEvaluator:
             logger.info('=> Computing DistMat with euclidean_distance')
             distmat = euclidean_distance(qf, gf)
 
-        print(distmat.shape)
-
         best_dist = get_best_matrix(distmat, self.det_for_image, self.num_query)
+        print(best_dist.shape)
 
         indixes = np.squeeze(np.argsort(best_dist, axis=1))
         self.timestamps = (np.array(self.timestamps[self.num_query:]))[indixes]
         self.camids = (np.array(self.camids[self.num_query:]))[indixes]
         self.trackids = (np.array(self.trackids[self.num_query:]))[indixes]
-        self.imgs_paths = (np.array(self.imgs_paths[self.num_query:]))[indixes]
+        self.imgs_paths = (np.asarray(self.imgs_paths[self.num_query:], dtype=object))[indixes]
 
         return (best_dist,
                 self.timestamps,
