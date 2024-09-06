@@ -304,7 +304,7 @@ def get_faces(model, batch, cfg, device, query_from_gui):
 
         batch_info = [np.array(info)[keep_index] for info in batch_info]
 
-        shape = (70, 60) if query_from_gui else (150, 150)
+        shape = (70, 70) if query_from_gui else (170, 170)
         face_transforms = T.Compose([
             T.Resize(shape),
             T.ToTensor(),

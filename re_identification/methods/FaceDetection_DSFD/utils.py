@@ -19,6 +19,8 @@ def vis_detections(im, dets, thresh=0.5, show_text=True):
     print(im2.shape)
     im = im[:, :, (2, 1, 0)]
     fig, ax = plt.subplots(figsize=(12, 12))
+    # img_blurred = cv2.GaussianBlur(im, (27, 27), 0)
+    # img_blurred[y0:y1, x0:x1] = im[y0:y1, x0:x1]
     ax.imshow(im, aspect='equal')
     for i in inds:
         bbox = dets[i, :4]

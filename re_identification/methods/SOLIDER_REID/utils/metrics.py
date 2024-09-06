@@ -238,7 +238,7 @@ class CustomEvaluator:
         self.timestamps = (np.array(self.timestamps[self.num_query:]))[indixes]
         self.camids = (np.array(self.camids[self.num_query:]))[indixes]
         self.trackids = (np.array(self.trackids[self.num_query:]))[indixes]
-        self.imgs_paths = (np.asarray(self.imgs_paths[self.num_query:], dtype=object))[indixes]
+        self.imgs_paths = (np.array(self.imgs_paths[self.num_query:], dtype=object))[indixes]
 
         return (best_dist,
                 self.timestamps,

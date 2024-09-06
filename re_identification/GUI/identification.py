@@ -1,7 +1,6 @@
 import os
 import sys
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torchvision.transforms as T
@@ -59,7 +58,8 @@ class ReIdentificationManager:
     def do_inference(self, query_from_gui: Image) -> None:
         if self.cfg.TEST.USE_FACE_DETECTION:
             self.use_cv2 = True
-            val_transforms = CustomTransform(self.cfg.INPUT.SIZE_TEST, self.face_detection_model.test_transform)
+            custom_t = CustomTransform(self.cfg.INPUT.SIZE_TEST, self.face_detection_model.test_transform)
+            val_transforms = T.Compose([custom_t])
         else:
             self.face_detection_model = None
             self.use_cv2 = False

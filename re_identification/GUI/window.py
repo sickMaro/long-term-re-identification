@@ -255,13 +255,13 @@ class Window:
                     child.destroy()
                     children_list.remove(child)
                 else:
-                    img = ...
+                    img = None
                     if isinstance(img_path, str):
                         if os.path.isfile(img_path):
                             img = ImageTk.PhotoImage(Image.open(img_path).resize((92, 192)))
 
                     else:
-                        img = ImageTk.PhotoImage(Image.fromarray(img_path).resize((92, 192)))
+                        img = ImageTk.PhotoImage(Image.fromarray(img_path.astype('uint8')).resize((92, 192)))
                     self.__results.append(img)
                     number = "N: " + str(i + 1)
                     id_ = "ID: " + trackid.astype(str)

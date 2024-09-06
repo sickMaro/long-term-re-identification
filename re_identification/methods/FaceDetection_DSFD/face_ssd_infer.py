@@ -1,7 +1,10 @@
+import cv2
 import torch
 import torchvision
 import torch.nn as nn
 import numpy as np
+from PIL import Image
+
 from data.config import TestBaseTransform, widerface_640 as cfg
 from layers import Detect, get_prior_boxes, FEM, pa_multibox, mio_module, upsample_product
 
@@ -170,7 +173,7 @@ class SSD(nn.Module):
         faces = []
         detections_per_image = []
         batch_info_to_keep = []
-
+        target_size = images[0].shape[:2]
         for i in range(detections.shape[0]):
             scores = detections[i, 1, :, 0]
             keep_idxs = scores > keep_thresh  # find keeping indexes
@@ -180,7 +183,16 @@ class SSD(nn.Module):
             if not_skip:
                 det = detections[i, 1, keep_idxs, :]  # select over threshold
                 det = det[:, [1, 2, 3, 4, 0]]  # reorder
-                scale = (*original_images[i].size, *original_images[i].size)
+                # scale = (*original_images[i].size, *original_images[i].size)
+                curr_img_size = original_images[i].size[::-1]
+                resize_factor_x = target_size[1] / curr_img_size[1]
+                resize_factor_y = target_size[0] / curr_img_size[0]
+
+                scale = (target_size[1] / resize_factor_x,
+                         target_size[0] / resize_factor_y,
+                         target_size[1] / resize_factor_x,
+                         target_size[0] / resize_factor_y)
+
                 det[:, :4] *= scale
 
                 for bbox in det:
@@ -196,7 +208,12 @@ class SSD(nn.Module):
                     x1 = int(min(scale[0], x1 + (x1 - x0) * multiplier_x))
                     y1 = int(min(scale[1], y1 + (y1 - y0) * multiplier_y))
 
+                    # start_img = np.array(original_images[i])
+                    # blurred_image = cv2.GaussianBlur(start_img, (33, 33), 0)
+                    # blurred_image[y0:y1, x0:x1] = start_img[y0:y1, x0:x1]
+                    # faces.append((Image.fromarray(blurred_image)))
                     faces.append(original_images[i].crop((x0, y0, x1, y1)))
+
                 detections_per_image.append(det.shape[0])
 
         return batch_info_to_keep, faces, detections_per_image
