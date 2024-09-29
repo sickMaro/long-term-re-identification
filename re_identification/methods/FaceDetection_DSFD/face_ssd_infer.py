@@ -1,5 +1,3 @@
-import sys
-
 import cv2
 import torch
 import torchvision
@@ -212,10 +210,13 @@ class SSD(nn.Module):
                     x1 = int(min(scale[0], x1 + (x1 - x0) * multiplier_x))
                     y1 = int(min(scale[1], y1 + (y1 - y0) * multiplier_y))
 
+                    # mascheramento area intorno al volto
                     # start_img = np.array(original_images[i])
                     # blurred_image = cv2.GaussianBlur(start_img, (33, 33), 0)
                     # blurred_image[y0:y1, x0:x1] = start_img[y0:y1, x0:x1]
                     # faces.append((Image.fromarray(blurred_image)))
+
+                    # crop del volto
                     faces.append(original_images[i].crop((x0, y0, x1, y1)))
 
                 detections_per_image.append(det.shape[0])
