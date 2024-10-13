@@ -60,7 +60,6 @@ class MainWindow(tk.Tk):
         self.frm_probe.grid()
         self.frm_probe.lbl_probe.config(image=self.video_manager.get_current_selected_area())
         self.frm_cameras.display_results_view(results)
-        # self.after(100, self.__create_results_frames, results)
 
     def restore_main_view(self):
         self.lbl_title.config(text=self.MAIN_TITLE)
