@@ -1,11 +1,12 @@
 import tkinter as tk
 
+from camera_section import CameraSection
+from video_section import VideoSection, ProbeSection
+
 
 class MainWindow(tk.Tk):
 
     def __init__(self, cfg, video_manager, re_id_manager, **kw):
-        from camera_section import CameraSection
-        from video_section import VideoSection, ProbeSection
         super().__init__(**kw)
         self.MAIN_TITLE: str = 'Person re-identification - SATcase6video'
         self.RESULT_TITLE: str = 'Result - SATcase6video'
