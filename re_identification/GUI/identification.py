@@ -38,7 +38,7 @@ class ReIdentificationManager:
     def load_face_detection_model(self) -> None:
         self.face_detection_model = SSD("test")
         path = '../methods/FaceDetection_DSFD/pretrained_models/WIDERFace_DSFD_RES152.pth'
-        self.face_detection_model.load_state_dict(torch.load(path))
+        self.face_detection_model.load_state_dict(torch.load(path, weights_only=True, map_location='cpu'))
 
     def get_face_detection_model(self) -> nn.Module:
         return self.face_detection_model

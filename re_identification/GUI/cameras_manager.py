@@ -34,7 +34,7 @@ class VideoImageManager:
 
         self.__current_frame: np.ndarray = ...
         self.__current_frame_PI: tk.PhotoImage = ...
-        self.__current_selected_area: tk.PhotoImage = ...
+        self.__current_selected_area: tk.PhotoImage | None = None
 
         self.__window_width: int = 0
         self.__window_height: int = 0
@@ -46,24 +46,12 @@ class VideoImageManager:
         self.__PLAY_BUTTON = None
         self.__VOLUME_BUTTON = None
 
-        if self.__cameras:
-            for _, video, thumbnail in self.__cameras:
-                if video.isOpened():
-                    video.release()
-                thumbnail.__del__()
-            self.__cameras.clear()
-
-    def get_cameras(self) -> list:
-        return self.__cameras
 
     def get_current_video(self) -> cv2.VideoCapture:
         return self.__current_video
 
     def get_current_video_title(self) -> str:
         return self.__current_video_title
-
-    def get_buttons_images(self) -> tuple[tk.PhotoImage, ...]:
-        return self.__PLAY_BUTTON, self.__PAUSE_BUTTON, self.__VOLUME_BUTTON
 
     def get_current_selected_area(self) -> tk.PhotoImage:
         return self.__current_selected_area
@@ -84,37 +72,6 @@ class VideoImageManager:
     def set_video_progress(self, percentage: float):
         next_frame = int(percentage * self.__current_video.get(cv2.CAP_PROP_FRAME_COUNT))
         self.__current_video.set(cv2.CAP_PROP_POS_FRAMES, next_frame)
-
-    def load_images_and_cameras(self, day: str) -> None:
-        try:
-            play_button_img = Image.open(f"{self.__images_dir}/play-button.png").resize((25, 25))
-            pause_button_img = Image.open(f"{self.__images_dir}/pause-button.png").resize((25, 25))
-            volume_button_img = Image.open(f"{self.__images_dir}/volume.png").resize((30, 30))
-
-            self.__PLAY_BUTTON = ImageTk.PhotoImage(play_button_img)
-            self.__PAUSE_BUTTON = ImageTk.PhotoImage(pause_button_img)
-            self.__VOLUME_BUTTON = ImageTk.PhotoImage(volume_button_img)
-
-            directory = f'{os.path.abspath(os.path.dirname(__file__))}/{self.__video_dir}/'
-            for root, _, files in os.walk(directory):
-                if not root.endswith(day) and day != 'both':
-                    continue
-                for file in files:
-                    path = os.path.join(root, file)
-                    if file.endswith(self.__VIDEO_TYPE):
-                        video = cv2.VideoCapture(path)
-                        if video.isOpened():
-                            ret, frame = video.read()
-                            if ret:
-                                frame_resized = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB),
-                                                           (self.__thumb_width, self.__thumb_height))
-                                photo = ImageTk.PhotoImage(image=Image.fromarray(frame_resized))
-                                self.__cameras.append((re.sub(r'day\d+_|\.mp4', '', file), video, photo))
-
-        except OSError:
-            print("Error while loading images and cameras...")
-            self.__del__()
-            sys.exit()
 
     def read_video(self) -> tk.PhotoImage | None:
         try:

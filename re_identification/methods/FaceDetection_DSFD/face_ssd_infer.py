@@ -1,3 +1,5 @@
+import sys
+
 import cv2
 import torch
 import torchvision
@@ -155,8 +157,8 @@ class SSD(nn.Module):
             for bbox in filter_list[i]:
                 x0, y0, x1, y1 = bbox[:4]
 
-                multiplier_x = 1.5 if (x1 - x0) <= 33 else 0.8
-                multiplier_y = 1.5 if (y1 - y0) <= 33 else 0.8
+                multiplier_x = 0.7 if (x1 - x0) <= 33 else 0.5
+                multiplier_y = 0.5 if (y1 - y0) <= 33 else 0.4
 
                 bbox[0] = max(0, bbox[0] - ((x1 - x0) * multiplier_x))
                 bbox[1] = max(0, bbox[1] - ((y1 - y0) * multiplier_y))
@@ -173,7 +175,8 @@ class SSD(nn.Module):
         faces = []
         detections_per_image = []
         batch_info_to_keep = []
-        target_size = images[0].shape[:2]
+        target_size = images[0].shape[1:]
+        print(target_size)
         for i in range(detections.shape[0]):
             scores = detections[i, 1, :, 0]
             keep_idxs = scores > keep_thresh  # find keeping indexes
@@ -185,6 +188,7 @@ class SSD(nn.Module):
                 det = det[:, [1, 2, 3, 4, 0]]  # reorder
                 # scale = (*original_images[i].size, *original_images[i].size)
                 curr_img_size = original_images[i].size[::-1]
+                print(curr_img_size)
                 resize_factor_x = target_size[1] / curr_img_size[1]
                 resize_factor_y = target_size[0] / curr_img_size[0]
 
@@ -199,8 +203,8 @@ class SSD(nn.Module):
                     x0, y0, x1, y1 = bbox[:4]
 
                     # Compute multipliers
-                    multiplier_x = 1.5 if (x1 - x0) <= 33 else 0.8
-                    multiplier_y = 1.5 if (y1 - y0) <= 33 else 0.8
+                    multiplier_x = 0.7 if (x1 - x0) <= 33 else 0.5
+                    multiplier_y = 0.5 if (y1 - y0) <= 33 else 0.4
 
                     # Expand bbox
                     x0 = int(max(0, x0 - (x1 - x0) * multiplier_x))

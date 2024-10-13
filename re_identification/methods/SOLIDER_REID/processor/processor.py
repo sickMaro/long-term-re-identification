@@ -17,6 +17,7 @@ sys.path.append('../../')
 sys.path.append('../../../')
 from methods.FaceDetection_DSFD.utils import extract_faces
 from my_utils.save_functions import save_state, load_state, save_batch_index, load_batch_index
+import torch_directml
 
 
 def do_train(cfg,
@@ -167,6 +168,7 @@ def move_models_to_device_and_eval_mode(models, device='cuda'):
 
     for model in models:
         if model:
+            model = torch.compile(model)
             model.to(device)
             model.eval()
 
@@ -177,6 +179,7 @@ def do_inference(cfg,
                  val_loader,
                  num_query):
     device = "cuda"
+    #device = torch_directml.device()
     logger = logging.getLogger("transreid.test")
     logger.info("Enter inferencing")
 
@@ -255,7 +258,8 @@ def do_inference(cfg,
 
 def do_custom_inference(cfg, model, face_detection_model, val_loader, num_query, query_from_gui):
     detections_per_image = []
-    device = "cuda"
+    device = "cuda" if torch.cuda.is_available() else 'cpu'
+    # device = torch_directml.device()
     logger = logging.getLogger("transreid.test")
     logger.info("Enter inferencing")
 
@@ -304,7 +308,7 @@ def get_faces(model, batch, cfg, device, query_from_gui):
 
         batch_info = [np.array(info)[keep_index] for info in batch_info]
 
-        shape = (70, 70) if query_from_gui else (170, 170)
+        shape = (50, 50) if query_from_gui else (200, 200)
         face_transforms = T.Compose([
             T.Resize(shape),
             T.ToTensor(),
