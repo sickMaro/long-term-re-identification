@@ -43,7 +43,6 @@ class MainWindow(tk.Tk):
         self.frm_probe.grid(row=1, column=0, sticky="new", padx=(15, 15), pady=35)
         self.frm_probe.grid_remove()
 
-
     def configure_window(self, main: bool = False, multiplier: float = 1.5) -> None:
         if main:
             self.state('zoomed')
