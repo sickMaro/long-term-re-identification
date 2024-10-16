@@ -1,1 +1,1 @@
-inserire i modelli pre addestrati nella seguente cartella
+inserire i modelli pre addestrati, per DSFD, nella seguente cartella
