@@ -8,4 +8,6 @@ inserire i video nella cartella apposita del package **GUI**
 **esempio di comando per avviare il simulatore**
 
 **DATASETS.DAY può assumere i valori 'one', 'two', 'both'**
+
+
 py main.py TEST.WEIGHT '../methods/SOLIDER_REID/pretrained_models/swin_base_msmt17.pth' TEST.USE_FACE_DETECTION False DATASETS.DAY 'one'
