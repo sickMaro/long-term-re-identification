@@ -18,3 +18,10 @@ nome_dataset
  |
  |-gallery_day_one
  |-gallery_day_two
+
+
+- **cartella-principale/**: Cartella principale del progetto, contiene tutte le sottocartelle.
+  - **sottocartella1/**: Contiene file di esempio.
+  - **sottocartella2/**: Contiene altri file di configurazione.
+- **documentazione/**: Cartella dedicata alla documentazione del progetto.
+  - **guida.md**: File con la guida all'utilizzo del progetto.
