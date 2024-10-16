@@ -1,7 +1,7 @@
-from cameras_manager import VideoImageManager
-from identification import ReIdentificationManager
-from main_window import MainWindow
-from parser import parse_args
+from GUI.cameras_manager import VideoImageManager
+from GUI.identification import ReIdentificationManager
+from GUI.main_window import MainWindow
+from GUI.parser import parse_args
 
 if __name__ == "__main__":
     cfg = parse_args()

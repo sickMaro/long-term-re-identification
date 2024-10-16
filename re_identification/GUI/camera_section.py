@@ -9,11 +9,10 @@ import cv2
 from PIL import Image, ImageTk
 
 
-def load_cameras(video_dir='video', video_type='mp4', thumbnail_dim=(200, 100), day: str = 'both') -> list:
+def load_cameras(video_dir='GUI/video', video_type='mp4', thumbnail_dim=(200, 100), day: str = 'both') -> list:
     cameras = []
     try:
-        directory = f'{os.path.abspath(os.path.dirname(__file__))}/{video_dir}/'
-        for root, _, files in os.walk(directory):
+        for root, _, files in os.walk(video_dir):
             if not root.endswith(day) and day != 'both':
                 continue
             for file in files:

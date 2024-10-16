@@ -1,7 +1,7 @@
 import tkinter as tk
 
-from camera_section import CameraSection
-from video_section import VideoSection, ProbeSection
+from .camera_section import CameraSection
+from .video_section import VideoSection, ProbeSection
 
 
 class MainWindow(tk.Tk):

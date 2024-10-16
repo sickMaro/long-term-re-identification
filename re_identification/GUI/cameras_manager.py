@@ -1,5 +1,3 @@
-import os
-import re
 import sys
 import tkinter as tk
 
@@ -10,23 +8,12 @@ from PIL import Image, ImageTk
 
 class VideoImageManager:
     def __init__(self, thumb_width=200,
-                 thumb_height=100,
-                 video_type='.mp4',
-                 images_dir='images',
-                 video_dir='video'):
+                 thumb_height=100):
 
         self.__cameras: list[(str, cv2.VideoCapture, tk.PhotoImage)] = []
 
         self.__thumb_width: int = thumb_width
         self.__thumb_height: int = thumb_height
-
-        self.__VIDEO_TYPE: str = video_type
-        self.__images_dir: str = images_dir
-        self.__video_dir: str = video_dir
-
-        self.__PLAY_BUTTON: tk.PhotoImage = ...
-        self.__PAUSE_BUTTON: tk.PhotoImage = ...
-        self.__VOLUME_BUTTON: tk.PhotoImage = ...
 
         self.__current_video: cv2.VideoCapture = ...
         self.__current_video_title: str = ''
@@ -38,13 +25,6 @@ class VideoImageManager:
 
         self.__window_width: int = 0
         self.__window_height: int = 0
-
-        self.DIRECTORY: str = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-
-    def __del__(self):
-        self.__PAUSE_BUTTON = None
-        self.__PLAY_BUTTON = None
-        self.__VOLUME_BUTTON = None
 
 
     def get_current_video(self) -> cv2.VideoCapture:
@@ -90,7 +70,6 @@ class VideoImageManager:
                 return None
         except (OSError, cv2.error):
             print("Error while processing video...")
-            self.__del__()
             sys.exit()
 
     def change_main_video(self, video: cv2.VideoCapture, video_title: str) -> cv2.VideoCapture:

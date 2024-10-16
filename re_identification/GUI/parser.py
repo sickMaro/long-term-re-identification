@@ -2,8 +2,8 @@ import argparse
 import os
 import sys
 
-sys.path.append('../methods/SOLIDER_REID')
-sys.path.append('../methods/')
+sys.path.append('methods/SOLIDER_REID')
+sys.path.append('methods/')
 from utils.logger import setup_logger
 from SOLIDER_REID.config import cfg
 def parse_args():
@@ -11,7 +11,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="ReID on SAT-Cameras")
     parser.add_argument(
         "--config_file",
-        default="../methods/SOLIDER_REID/configs/msmt17/swin_base.yml",
+        default="methods/SOLIDER_REID/configs/msmt17/swin_base.yml",
         help="path to config file",
         type=str)
 

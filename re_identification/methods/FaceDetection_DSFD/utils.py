@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 import sys
-sys.path.append('../methods/SOLIDER_REID')
+sys.path.append('methods/SOLIDER_REID')
 sys.path.append('../SOLIDER_REID')
 from datasets.bases import read_image
 

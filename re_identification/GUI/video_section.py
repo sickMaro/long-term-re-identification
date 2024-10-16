@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 import cv2
 from PIL import ImageTk
 
-from custom_progressbar import CustomProgressBar
+from .custom_progressbar import CustomProgressBar
 
 
 class VideoSection(tk.Frame):
