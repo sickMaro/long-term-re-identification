@@ -1,4 +1,5 @@
-from GUI import VideoManager, ReIdentificationManager, MainWindow, parse_args
+from GUI import VideoManager, ReIdentificationManager, MainWindow
+from parser import parse_args
 
 if __name__ == "__main__":
     cfg = parse_args()

@@ -52,4 +52,4 @@ TEST:
   NECK_FEAT: 'before'
   FEAT_NORM: 'yes'
 
-OUTPUT_DIR: './log/my_dataset'
+OUTPUT_DIR: 'methods/SOLIDER_REID/log/my_dataset'

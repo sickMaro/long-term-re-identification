@@ -6,8 +6,9 @@ sys.path.append('methods/SOLIDER_REID')
 sys.path.append('methods/')
 from utils.logger import setup_logger
 from SOLIDER_REID.config import cfg
-def parse_args():
 
+
+def parse_args():
     parser = argparse.ArgumentParser(description="ReID on SAT-Cameras")
     parser.add_argument(
         "--config_file",
