@@ -1,11 +1,8 @@
-from GUI.cameras_manager import VideoImageManager
-from GUI.identification import ReIdentificationManager
-from GUI.main_window import MainWindow
-from GUI.parser import parse_args
+from GUI import VideoManager, ReIdentificationManager, MainWindow, parse_args
 
 if __name__ == "__main__":
     cfg = parse_args()
-    video_manager = VideoImageManager()
+    video_manager = VideoManager()
     re_id_manager = ReIdentificationManager(cfg)
     re_id_manager.load_models()
     mw = MainWindow(cfg, video_manager, re_id_manager)

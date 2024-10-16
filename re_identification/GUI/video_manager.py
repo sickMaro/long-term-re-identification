@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image, ImageTk
 
 
-class VideoImageManager:
+class VideoManager:
     def __init__(self, thumb_width=200,
                  thumb_height=100):
 
