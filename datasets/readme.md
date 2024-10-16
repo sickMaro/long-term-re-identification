@@ -1,4 +1,4 @@
-aggiungere all'interno della directory le cartelle relative ai datasets che si intedono usare per il progetto nella forma:
+Per i dataset custom aggiungere all'interno della directory le cartelle relative ai datasets che si intedono usare per il progetto nella forma:
 
 - **nome_dataset/**: Cartella principale che contiene il dataset.
   - **query/**: Contiene i dati delle query.
