@@ -3,8 +3,8 @@ aggiungere all'interno della directory le cartelle relative ai datasets che si i
 
 - **nome_dataset/**
   - **query/**
-  - -**query_day_one/**
-  - -**query_day_two/**
+    -**query_day_one/**
+    -**query_day_two/**
   - **gallery/**
-  - -**gallery_day_one/**
-  - -**gallery_day_two/**
+    -**gallery_day_one/**
+    -**gallery_day_two/**
