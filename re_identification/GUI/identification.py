@@ -6,12 +6,11 @@ import torch.nn as nn
 import torchvision.transforms as T
 from PIL import ImageTk, Image
 
-from .transformation import CustomTransform
-
 sys.path.append('methods/SOLIDER_REID')
 sys.path.append('methods/FaceDetection_DSFD')
 from model import make_model
 from datasets.make_dataloader import make_custom_dataloader
+from datasets.transformation import CustomTransform
 from processor import do_custom_inference
 from face_ssd_infer import SSD
 

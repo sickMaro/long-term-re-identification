@@ -195,7 +195,7 @@ class build_transformer(nn.Module):
         self.base = factory[cfg.MODEL.TRANSFORMER_TYPE](img_size=cfg.INPUT.SIZE_TRAIN,
                                                         drop_path_rate=cfg.MODEL.DROP_PATH,
                                                         drop_rate=cfg.MODEL.DROP_OUT,
-                                                        attn_drop_rate=cfg.MODEL.ATT_DROP_RATE, pretrained=model_path,
+                                                        attn_drop_rate=cfg.MODEL.ATT_DROP_RATE, init_cfg=model_path,
                                                         convert_weights=convert_weights,
                                                         semantic_weight=semantic_weight)
         if model_path != '':

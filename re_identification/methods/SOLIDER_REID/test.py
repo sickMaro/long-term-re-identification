@@ -12,8 +12,7 @@ import sys
 sys.path.append('../methods/FaceDetection_DSFD')
 sys.path.append('../FaceDetection_DSFD')
 from face_ssd_infer import SSD
-sys.path.append('../../GUI')
-from transformation import CustomTransform
+from datasets.transformation import CustomTransform
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ReID Baseline Training")
