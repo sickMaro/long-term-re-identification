@@ -27,7 +27,8 @@ def load_cameras(video_dir='GUI/video',
                 if file.endswith(video_type):
                     video = cv2.VideoCapture(path)
                     if video.isOpened():
-                        photo = video_manager.read_video(thumb_shape=thumbnail_dim)
+                        photo = video_manager.read_video(thumb_shape=thumbnail_dim,
+                                                         video=video)
                         title = re.sub(r'day\d+_|\.mp4', '', file)
                         cameras.append((title, video, photo))
 
