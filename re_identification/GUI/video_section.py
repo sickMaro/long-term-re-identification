@@ -1,3 +1,4 @@
+import sys
 import tkinter as tk
 from concurrent.futures import ThreadPoolExecutor
 
@@ -46,16 +47,24 @@ class VideoSection(tk.Frame):
         return self.winfo_screenmmheight() * 2
 
     def __read_video(self):
-        photo = self.video_manager.read_video()
-        if photo:
-            self.cnv_video.create_image((0, 0), anchor=tk.NW, image=photo)
-            self.custom_progress_bar.update_progress_bar(
-                self.video_manager.get_current_video().get(cv2.CAP_PROP_POS_FRAMES))
-        else:
-            self.check_play_button()
+        try:
+            photo = self.video_manager.read_video()
 
-        if not self.video_manager.is_paused():
-            self.cnv_video.after(8, self.__read_video)
+        except (cv2.error, RuntimeError) as e:
+            print(f"Error while processing video:\n{e}")
+            self.winfo_toplevel().destroy()
+            sys.exit()
+
+        else:
+            if photo:
+                self.cnv_video.create_image((0, 0), anchor=tk.NW, image=photo)
+                self.custom_progress_bar.update_progress_bar(
+                    self.video_manager.get_current_video().get(cv2.CAP_PROP_POS_FRAMES))
+            else:
+                self.check_play_button()
+
+            if not self.video_manager.is_paused():
+                self.cnv_video.after(8, self.__read_video)
 
     def seek_video(self, event: tk.Event) -> None:
         video_percentage = event.x / self.custom_progress_bar.progress_bar.winfo_width()

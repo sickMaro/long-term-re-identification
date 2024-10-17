@@ -1,4 +1,3 @@
-import sys
 import tkinter as tk
 
 import cv2
@@ -51,28 +50,24 @@ class VideoManager:
         next_frame = int(percentage * self.__current_video.get(cv2.CAP_PROP_FRAME_COUNT))
         self.__current_video.set(cv2.CAP_PROP_POS_FRAMES, next_frame)
 
-    def read_video(self, thumb_shape: tuple[int, int]=None, video: cv2.VideoCapture=None) -> tk.PhotoImage | None:
+    def read_video(self, thumb_shape: tuple[int, int] = None, video: cv2.VideoCapture = None) -> tk.PhotoImage | None:
         if thumb_shape is None:
             thumb_shape = (self.__window_width, self.__window_height)
         if video is None:
             video = self.__current_video
-        try:
-            ret, frame = video.read()
-            if ret:
 
-                frame_resized = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB),
-                                           thumb_shape)
-                photo = ImageTk.PhotoImage(image=Image.fromarray(frame_resized))
+        ret, frame = video.read()
+        if ret:
+            frame_resized = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB),
+                                       thumb_shape)
+            photo = ImageTk.PhotoImage(image=Image.fromarray(frame_resized))
 
-                self.__current_frame = frame_resized
-                self.__current_frame_PI = photo
+            self.__current_frame = frame_resized
+            self.__current_frame_PI = photo
 
-                return photo
-            else:
-                return None
-        except (OSError, cv2.error):
-            print("Error while processing video...")
-            sys.exit()
+            return photo
+        else:
+            return None
 
     def change_main_video(self, video: cv2.VideoCapture, video_title: str) -> cv2.VideoCapture:
         self.__paused = True

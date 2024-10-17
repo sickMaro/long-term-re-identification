@@ -13,11 +13,16 @@ def load_cameras(video_dir='GUI/video',
                  video_type='mp4',
                  thumbnail_dim=(200, 100),
                  day: str = 'both',
-                 video_manager=None) -> list:
+                 video_manager=None,
+                 top_level_window=None) -> list:
     cameras = []
     try:
         if video_manager is None:
             raise RuntimeError('Video manager not specified')
+        if top_level_window is None:
+            raise RuntimeError('Top level window not specified')
+        if not os.path.exists(video_dir):
+            raise RuntimeError('Video directory not found')
 
         for root, _, files in os.walk(video_dir):
             if day != 'both' and not root.endswith(day):
@@ -32,11 +37,12 @@ def load_cameras(video_dir='GUI/video',
                         title = re.sub(r'day\d+_|\.mp4', '', file)
                         cameras.append((title, video, photo))
 
-        return cameras
-    except OSError:
-        print("Error while loading images and cameras...")
-        free_cameras(cameras)
+    except (OSError, RuntimeError) as e:
+        print(f"Error while loading cameras:\n{e}")
+        top_level_window.destroy()
         sys.exit()
+    else:
+        return cameras
 
 
 def free_cameras(cameras_list):
@@ -128,7 +134,9 @@ class CamerasFrame(tk.Frame):
         self.columnconfigure(0, weight=0)
         self.columnconfigure(1, weight=1)
 
-        self.cameras = load_cameras(day=self.day, video_manager=self.video_manager)
+        self.cameras = []
+        self.cameras = load_cameras(day=self.day, video_manager=self.video_manager,
+                                    top_level_window=self.winfo_toplevel())
         self.create_cameras_frames()
 
     def __del__(self):

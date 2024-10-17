@@ -1,3 +1,4 @@
+import os
 import sys
 import tkinter as tk
 from tkinter import ttk
@@ -5,9 +6,15 @@ from tkinter import ttk
 from PIL import ImageTk, Image
 
 
-def load_buttons_images(images_dir):
+def load_buttons_images(images_dir, top_level_window=None):
     play_button_img = pause_button_img = volume_button_img = None
+
     try:
+        if top_level_window is None:
+            raise RuntimeError('Top level window not specified')
+        if not os.path.exists(images_dir):
+            raise RuntimeError('Images directory does not exist')
+
         play_button_img = Image.open(f"{images_dir}/play-button.png").resize((25, 25))
         pause_button_img = Image.open(f"{images_dir}/pause-button.png").resize((25, 25))
         volume_button_img = Image.open(f"{images_dir}/volume.png").resize((30, 30))
@@ -16,8 +23,8 @@ def load_buttons_images(images_dir):
         pause_button = ImageTk.PhotoImage(pause_button_img)
         volume_button = ImageTk.PhotoImage(volume_button_img)
 
-    except OSError:
-        print("Error while loading images...")
+    except (OSError, RuntimeError) as e:
+        print(f"Error while loading images:\n{e}")
         if play_button_img:
             play_button_img.close()
         if pause_button_img:
@@ -25,6 +32,7 @@ def load_buttons_images(images_dir):
         if volume_button_img:
             volume_button_img.close()
 
+        top_level_window.destroy()
         sys.exit()
 
     else:
@@ -41,7 +49,7 @@ class CustomProgressBar(tk.Frame):
         self.volume_button: tk.PhotoImage = ...
 
         self.play_button, self.pause_button, self.volume_button = (
-            load_buttons_images(self.images_dir))
+            load_buttons_images(self.images_dir, top_level_window=self.winfo_toplevel()))
 
         self.btn_play_video: tk.Button = tk.Button(self, image=str(self.play_button),
                                                    relief="flat", height=20, width=20,
