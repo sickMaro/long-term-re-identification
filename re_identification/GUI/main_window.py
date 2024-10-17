@@ -43,6 +43,11 @@ class MainWindow(tk.Tk):
         self.frm_probe.grid(row=1, column=0, sticky="new", padx=(15, 15), pady=35)
         self.frm_probe.grid_remove()
 
+        self.protocol("WM_DELETE_WINDOW", self.destroy)
+
+    def __del__(self):
+        self.results.clear()
+
     def configure_window(self, main: bool = False, multiplier: float = 1.5) -> None:
         if main:
             self.state('zoomed')
@@ -59,7 +64,7 @@ class MainWindow(tk.Tk):
         self.frm_video.grid_remove()
         self.frm_probe.grid()
         self.frm_probe.set_probe_image(self.video_manager.get_current_selected_area())
-        self.frm_cameras.display_results_view(results)
+        self.frm_cameras.configure_canvas_after_update(display_results=True, results=results)
 
     def restore_main_view(self):
         self.lbl_title.config(text=self.MAIN_TITLE)
@@ -67,4 +72,4 @@ class MainWindow(tk.Tk):
         self.frm_probe.grid_remove()
         self.frm_video.grid()
         self.frm_video.enable_selection()
-        self.frm_cameras.display_camera_view()
+        self.frm_cameras.configure_canvas_after_update(display_results=False)

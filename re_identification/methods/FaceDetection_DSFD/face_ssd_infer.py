@@ -188,7 +188,7 @@ class SSD(nn.Module):
                 det = det[:, [1, 2, 3, 4, 0]]  # reorder
                 # scale = (*original_images[i].size, *original_images[i].size)
                 curr_img_size = original_images[i].size[::-1]
-                print(curr_img_size)
+                # print(curr_img_size)
                 resize_factor_x = target_size[1] / curr_img_size[1]
                 resize_factor_y = target_size[0] / curr_img_size[0]
 

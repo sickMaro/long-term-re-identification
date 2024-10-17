@@ -52,7 +52,6 @@ class CameraSection(tk.Frame):
     def __init__(self, master, video_section, day, **kw):
         super().__init__(master, **kw)
 
-        self.canvas_window_id = -1
         self.video_section = video_section
         self.day = day
 
@@ -85,46 +84,36 @@ class CameraSection(tk.Frame):
         self.frm_final_results.grid_remove()
         self.scrollbar_camera.grid(row=0, column=1, rowspan=2, sticky="nse")
 
-        self.canvas_cameras.create_window((0, 0), anchor=tk.NW, window=self.frm_final_cameras, tags="cameras")
+        self.canvas_win_id = self.canvas_cameras.create_window((0, 0), anchor=tk.NW, window=self.frm_final_cameras)
 
         self.scrollbar_camera.config(command=self.canvas_cameras.yview)  # Connect scrollbar to canvas
         self.canvas_cameras.config(yscrollcommand=self.scrollbar_camera.set)  # Connect canvas to scrollbar
 
         self.bind_all("<MouseWheel>", self.on_mousewheel)
-        self.canvas_cameras.bind("<Configure>", self.canvas_configure)
-
-        self.frm_final_cameras.update_idletasks()
-        self.canvas_cameras.config(scrollregion=self.canvas_cameras.bbox("all"))
+        self.configure_canvas_after_update(display_results=False)
 
     def on_mousewheel(self, event: tk.Event) -> None:
         self.canvas_cameras.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
-    def display_results_view(self, results):
-        self.frm_final_results.create_results_frames(results)
-        self.canvas_cameras.delete(self.canvas_window_id)
-        self.canvas_window_id = self.canvas_cameras.create_window((0, 0), anchor=tk.NW,
-                                                                  window=self.frm_final_results,
-                                                                  tags="result")
-        self.canvas_cameras.bind("<Configure>", self.canvas_configure)
-        self.frm_final_results.update_idletasks()
-        self.canvas_cameras.config(scrollregion=self.canvas_cameras.bbox("all"))
-        self.canvas_cameras.yview_moveto(0)
+    def configure_canvas_after_update(self, display_results: bool = False, results: tuple = None):
+        if display_results:
+            self.frm_final_results.create_results_frames(results)
+            frame = self.frm_final_results
+        else:
+            self.frm_final_results.delete_results_images()
+            frame = self.frm_final_cameras
 
-    def display_camera_view(self):
-        if self.frm_final_results.results_imgs:
-            self.frm_final_results.results_imgs.clear()
-        self.canvas_cameras.delete(self.canvas_window_id)
-        self.canvas_window_id = self.canvas_cameras.create_window((0, 0), anchor=tk.NW,
-                                                                  window=self.frm_final_cameras,
-                                                                  tags="cameras")
+        self.canvas_cameras.delete(self.canvas_win_id)
+        self.canvas_win_id = self.canvas_cameras.create_window((0, 0), anchor=tk.NW,
+                                                               window=frame)
 
         self.canvas_cameras.bind("<Configure>", self.canvas_configure)
-        self.frm_final_cameras.update_idletasks()
+        frame.update_idletasks()
         self.canvas_cameras.config(scrollregion=self.canvas_cameras.bbox("all"))
         self.canvas_cameras.yview_moveto(0)
 
     def canvas_configure(self, event: tk.Event) -> None:
-        self.canvas_cameras.itemconfig(self.canvas_window_id, width=event.width)
+        self.canvas_cameras.itemconfig(self.canvas_win_id, width=event.width)
 
 
 class CamerasFrame(tk.Frame):
@@ -245,3 +234,7 @@ class ResultsFrame(tk.Frame):
         inner_frm_children_list[0].create_image(0, 0, anchor=tk.NW, image=img)
         for i, text in enumerate(new_text):
             inner_frm_children_list[i + 1].config(text=text, **kwargs)
+
+    def delete_results_images(self):
+        if self.results_imgs:
+            self.results_imgs.clear()
