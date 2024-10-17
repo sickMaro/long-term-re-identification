@@ -28,7 +28,6 @@ class VideoSection(tk.Frame):
 
         self.rowconfigure((0, 1), weight=0)
         self.columnconfigure(0, weight=1)
-        # self.grid(row=0, column=0, sticky='nsew')
         self.cnv_video.grid(row=0, column=0, padx=55, pady=(30, 0), sticky="w")
         self.cnv_video.grid_propagate(False)
         self.btn_identification.grid(row=2, column=0, sticky="n")
@@ -37,6 +36,8 @@ class VideoSection(tk.Frame):
 
         self.cnv_video.bind("<Button-1>", self.__start_drag)
         self.cnv_video.bind("<B1-Motion>", self.__on_drag)
+
+        self.area_selection_enabled = True
 
     def get_width(self) -> int:
         return self.winfo_screenmmwidth() * 2
@@ -75,12 +76,12 @@ class VideoSection(tk.Frame):
         self.__read_video()
 
     def __start_drag(self, event: tk.Event) -> None:
-        if self.cnv_video is not None:
+        if self.cnv_video is not None and self.area_selection_enabled:
             self.start_x = self.cnv_video.canvasx(event.x)
             self.start_y = self.cnv_video.canvasy(event.y)
 
     def __on_drag(self, event: tk.Event) -> None:
-        if self.cnv_video is not None:
+        if self.cnv_video is not None and self.area_selection_enabled:
             x0 = int(min(self.start_x, self.cnv_video.canvasx(event.x)))
             x1 = int(max(self.start_x, self.cnv_video.canvasx(event.x)))
             y0 = int(min(self.start_y, self.cnv_video.canvasy(event.y)))
@@ -96,11 +97,19 @@ class VideoSection(tk.Frame):
 
     def show_results(self) -> None:
         if self.video_manager.get_current_selected_area() is not None:
-            self.btn_identification.config(state="disabled")
+            self.disable_selection()
 
             query = ImageTk.getimage(self.video_manager.get_current_selected_area()).convert('RGB')
             future = self.executor.submit(self.re_id_manager.do_inference, query)
             future.add_done_callback(self.master.change_main_view)
+
+    def enable_selection(self):
+        self.btn_identification.config(state="normal")
+        self.area_selection_enabled = True
+
+    def disable_selection(self):
+        self.btn_identification.config(state="disabled")
+        self.area_selection_enabled = False
 
 
 class ProbeSection(tk.Frame):
@@ -109,7 +118,7 @@ class ProbeSection(tk.Frame):
         self.master = master
 
         self.lbl_probe_title: tk.Label = tk.Label(self, text="Your probe", font=("Arial", 13),
-                                                    fg="black", bg="light grey")
+                                                  fg="black", bg="light grey")
 
         self.lbl_probe: tk.Label = tk.Label(self, highlightthickness=0, border=0)
         self.__btn_change_probe: tk.Button = tk.Button(self, text="Change probe",
@@ -124,3 +133,6 @@ class ProbeSection(tk.Frame):
         self.lbl_probe_title.grid(row=0, column=0, sticky="ew", pady=10)
         self.lbl_probe.grid(row=1, column=0, sticky="n", padx=15)
         self.__btn_change_probe.grid(row=2, column=0, sticky="n", pady=20, padx=0)
+
+    def set_probe_image(self, current_probe: tk.PhotoImage) -> None:
+        self.lbl_probe.config(image=current_probe)

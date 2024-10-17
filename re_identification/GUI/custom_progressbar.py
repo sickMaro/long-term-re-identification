@@ -1,8 +1,34 @@
 import sys
-from tkinter import ttk
 import tkinter as tk
+from tkinter import ttk
 
 from PIL import ImageTk, Image
+
+
+def load_buttons_images(images_dir):
+    play_button_img = pause_button_img = volume_button_img = None
+    try:
+        play_button_img = Image.open(f"{images_dir}/play-button.png").resize((25, 25))
+        pause_button_img = Image.open(f"{images_dir}/pause-button.png").resize((25, 25))
+        volume_button_img = Image.open(f"{images_dir}/volume.png").resize((30, 30))
+
+        play_button = ImageTk.PhotoImage(play_button_img)
+        pause_button = ImageTk.PhotoImage(pause_button_img)
+        volume_button = ImageTk.PhotoImage(volume_button_img)
+
+    except OSError:
+        print("Error while loading images...")
+        if play_button_img:
+            play_button_img.close()
+        if pause_button_img:
+            pause_button_img.close()
+        if volume_button_img:
+            volume_button_img.close()
+
+        sys.exit()
+
+    else:
+        return play_button, pause_button, volume_button
 
 
 class CustomProgressBar(tk.Frame):
@@ -14,7 +40,8 @@ class CustomProgressBar(tk.Frame):
         self.pause_button: tk.PhotoImage = ...
         self.volume_button: tk.PhotoImage = ...
 
-        self.load_buttons_images()
+        self.play_button, self.pause_button, self.volume_button = (
+            load_buttons_images(self.images_dir))
 
         self.btn_play_video: tk.Button = tk.Button(self, image=str(self.play_button),
                                                    relief="flat", height=20, width=20,
@@ -36,7 +63,6 @@ class CustomProgressBar(tk.Frame):
         self.columnconfigure(0, weight=0)
         self.columnconfigure(1, weight=1)
         self.columnconfigure(2, weight=0)
-        # self.grid(row=1, column=0, padx=55, pady=(0, 20), sticky="nwe")
         self.btn_play_video.grid(row=0, column=0, sticky="nsew")
         self.btn_video_volume.grid(row=0, column=2, sticky="e")
         self.progress_bar.grid(row=0, column=1, sticky="ew")
@@ -47,20 +73,6 @@ class CustomProgressBar(tk.Frame):
         self.play_button = None
         self.volume_button = None
         self.pause_button = None
-
-    def load_buttons_images(self):
-        try:
-            play_button_img = Image.open(f"{self.images_dir}/play-button.png").resize((25, 25))
-            pause_button_img = Image.open(f"{self.images_dir}/pause-button.png").resize((25, 25))
-            volume_button_img = Image.open(f"{self.images_dir}/volume.png").resize((30, 30))
-
-            self.play_button = ImageTk.PhotoImage(play_button_img)
-            self.pause_button = ImageTk.PhotoImage(pause_button_img)
-            self.volume_button = ImageTk.PhotoImage(volume_button_img)
-        except OSError:
-            print("Error while loading images...")
-            self.__del__()
-            sys.exit()
 
     def update_progress_bar(self, current_frames: float) -> None:
         if self.progress_bar['value'] < self.progress_bar["length"]:

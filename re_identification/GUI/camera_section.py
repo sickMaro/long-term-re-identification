@@ -9,40 +9,49 @@ import cv2
 from PIL import Image, ImageTk
 
 
-def load_cameras(video_dir='GUI/video', video_type='mp4', thumbnail_dim=(200, 100), day: str = 'both') -> list:
+def load_cameras(video_dir='GUI/video',
+                 video_type='mp4',
+                 thumbnail_dim=(200, 100),
+                 day: str = 'both',
+                 video_manager=None) -> list:
     cameras = []
     try:
+        if video_manager is None:
+            raise RuntimeError('Video manager not specified')
+
         for root, _, files in os.walk(video_dir):
-            if not root.endswith(day) and day != 'both':
+            if day != 'both' and not root.endswith(day):
                 continue
             for file in files:
                 path = os.path.join(root, file)
                 if file.endswith(video_type):
                     video = cv2.VideoCapture(path)
                     if video.isOpened():
-                        ret, frame = video.read()
-                        if ret:
-                            frame_resized = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB),
-                                                       thumbnail_dim)
-                            photo = ImageTk.PhotoImage(image=Image.fromarray(frame_resized))
-                            cameras.append((re.sub(r'day\d+_|\.mp4', '', file), video, photo))
+                        photo = video_manager.read_video(thumb_shape=thumbnail_dim)
+                        title = re.sub(r'day\d+_|\.mp4', '', file)
+                        cameras.append((title, video, photo))
 
         return cameras
     except OSError:
         print("Error while loading images and cameras...")
-        if cameras:
-            for _, video, thumbnail in cameras:
-                if video.isOpened():
-                    video.release()
-                thumbnail.__del__()
-            cameras.clear()
+        free_cameras(cameras)
         sys.exit()
+
+
+def free_cameras(cameras_list):
+    if cameras_list:
+        for _, video, thumbnail in cameras_list:
+            if video.isOpened():
+                video.release()
+            del thumbnail
+        cameras_list.clear()
 
 
 class CameraSection(tk.Frame):
     def __init__(self, master, video_section, day, **kw):
         super().__init__(master, **kw)
 
+        self.canvas_window_id = -1
         self.video_section = video_section
         self.day = day
 
@@ -91,10 +100,10 @@ class CameraSection(tk.Frame):
 
     def display_results_view(self, results):
         self.frm_final_results.create_results_frames(results)
-        self.canvas_cameras.delete("cameras")
-        self.canvas_cameras.create_window((0, 0), anchor=tk.NW,
-                                          window=self.frm_final_results,
-                                          tags="result")
+        self.canvas_cameras.delete(self.canvas_window_id)
+        self.canvas_window_id = self.canvas_cameras.create_window((0, 0), anchor=tk.NW,
+                                                                  window=self.frm_final_results,
+                                                                  tags="result")
         self.canvas_cameras.bind("<Configure>", self.canvas_configure)
         self.frm_final_results.update_idletasks()
         self.canvas_cameras.config(scrollregion=self.canvas_cameras.bbox("all"))
@@ -103,15 +112,18 @@ class CameraSection(tk.Frame):
     def display_camera_view(self):
         if self.frm_final_results.results_imgs:
             self.frm_final_results.results_imgs.clear()
-        self.canvas_cameras.delete("result")
-        self.canvas_cameras.create_window((0, 0), anchor=tk.NW, window=self.frm_final_cameras, tags="cameras")
+        self.canvas_cameras.delete(self.canvas_window_id)
+        self.canvas_window_id = self.canvas_cameras.create_window((0, 0), anchor=tk.NW,
+                                                                  window=self.frm_final_cameras,
+                                                                  tags="cameras")
+
         self.canvas_cameras.bind("<Configure>", self.canvas_configure)
         self.frm_final_cameras.update_idletasks()
         self.canvas_cameras.config(scrollregion=self.canvas_cameras.bbox("all"))
         self.canvas_cameras.yview_moveto(0)
 
     def canvas_configure(self, event: tk.Event) -> None:
-        self.canvas_cameras.itemconfig("cameras", width=event.width)
+        self.canvas_cameras.itemconfig(self.canvas_window_id, width=event.width)
 
 
 class CamerasFrame(tk.Frame):
@@ -121,25 +133,21 @@ class CamerasFrame(tk.Frame):
         self.master: tk.Canvas = master
         self.day = day
         self.video_section = video_section
+        self.video_manager = self.video_section.video_manager
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=0)
         self.columnconfigure(1, weight=1)
 
-        self.cameras = load_cameras(day=self.day)
+        self.cameras = load_cameras(day=self.day, video_manager=self.video_manager)
         self.create_cameras_frames()
 
     def __del__(self):
-        if self.cameras:
-            for _, video, thumbnail in self.cameras:
-                if video.isOpened():
-                    video.release()
-                thumbnail.__del__()
-            self.cameras.clear()
+        free_cameras(self.cameras)
 
     def create_cameras_frames(self) -> None:
         pad_x, pad_y = 13, 20
         for i, (camera_title, video, photo) in enumerate(self.cameras):
-            width, height = self.video_section.video_manager.get_thumb_dimension()
+            width, height = self.video_manager.get_thumb_dimension()
             video_canvas = tk.Canvas(self, height=height, width=width)
             if i == 0:
                 self.video_section.change_main_video(video, camera_title)
@@ -222,14 +230,17 @@ class ResultsFrame(tk.Frame):
         window_.winfo_children().append(frm_result)
 
     @staticmethod
-    def __create_result_frame_label(*, master: tk.Widget = None, fg: str = "black", bg: str = "white",
-                                    font: tuple[str, int] = ("Arial", 8), text: str = "") -> tk.Label:
-        return tk.Label(master, fg=fg, bg=bg, font=font, text=text)
+    def __create_result_frame_label(*, master: tk.Widget = None,
+                                    fg: str = "black", bg: str = "white",
+                                    font: tuple[str, int] = ("Arial", 8),
+                                    text: str = "", **kwargs) -> tk.Label:
+
+        return tk.Label(master, fg=fg, bg=bg, font=font, text=text, **kwargs)
 
     @staticmethod
-    def __update_result_frames(child, img: tk.PhotoImage, *new_text: str) -> None:
+    def __update_result_frames(child, img: tk.PhotoImage, *new_text: str, **kwargs) -> None:
         inner_frm_children_list = child.winfo_children()
         inner_frm_children_list[0].config(width=img.width(), height=img.height())
         inner_frm_children_list[0].create_image(0, 0, anchor=tk.NW, image=img)
         for i, text in enumerate(new_text):
-            inner_frm_children_list[i + 1].config(text=text)
+            inner_frm_children_list[i + 1].config(text=text, **kwargs)

@@ -34,7 +34,6 @@ class MainWindow(tk.Tk):
         self.frm_main.rowconfigure((0, 1), weight=0)
         self.frm_main.columnconfigure(0, weight=1)
         self.frm_main.columnconfigure(1, weight=0)
-        # self.frm_main.grid(row=1, column=0, sticky="new", padx=(15, 15), pady=35)
 
         self.lbl_title.grid(row=0, column=0, columnspan=2, sticky="new", padx=2, pady=2)
 
@@ -59,7 +58,7 @@ class MainWindow(tk.Tk):
         self.configure_window(multiplier=1.7)
         self.frm_video.grid_remove()
         self.frm_probe.grid()
-        self.frm_probe.lbl_probe.config(image=self.video_manager.get_current_selected_area())
+        self.frm_probe.set_probe_image(self.video_manager.get_current_selected_area())
         self.frm_cameras.display_results_view(results)
 
     def restore_main_view(self):
@@ -67,5 +66,5 @@ class MainWindow(tk.Tk):
         self.configure_window()
         self.frm_probe.grid_remove()
         self.frm_video.grid()
-        self.frm_video.btn_identification.config(state="normal")
+        self.frm_video.enable_selection()
         self.frm_cameras.display_camera_view()

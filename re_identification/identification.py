@@ -1,10 +1,9 @@
-import os
 import sys
 
 import torch
 import torch.nn as nn
 import torchvision.transforms as T
-from PIL import ImageTk, Image
+from PIL import Image
 
 sys.path.append('methods/SOLIDER_REID')
 sys.path.append('methods/FaceDetection_DSFD')
@@ -21,7 +20,6 @@ class ReIdentificationManager:
         self.face_detection_model = None
         self.solider_model = None
         self.use_cv2 = False
-        self.__CURRENT_PATH: str = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 
     def load_models(self) -> None:
         self.load_solider_model()
@@ -79,8 +77,3 @@ class ReIdentificationManager:
                                    val_loader,
                                    num_query,
                                    query_from_gui)
-
-    def save_probe(self, query_from_gui: ImageTk, camera_title: str) -> None:
-        cropped_image = ImageTk.getimage(query_from_gui)
-        name = f'{camera_title}_MILLIS_0_TRK-ID_0_TIMESTAMP_0-0-0.png'
-        cropped_image.save(f'{self.__CURRENT_PATH}/datasets/my_dataset/query/{name}')

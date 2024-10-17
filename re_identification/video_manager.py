@@ -7,8 +7,7 @@ from PIL import Image, ImageTk
 
 
 class VideoManager:
-    def __init__(self, thumb_width=200,
-                 thumb_height=100):
+    def __init__(self, thumb_width=200, thumb_height=100):
 
         self.__cameras: list[(str, cv2.VideoCapture, tk.PhotoImage)] = []
 
@@ -25,7 +24,6 @@ class VideoManager:
 
         self.__window_width: int = 0
         self.__window_height: int = 0
-
 
     def get_current_video(self) -> cv2.VideoCapture:
         return self.__current_video
@@ -53,13 +51,16 @@ class VideoManager:
         next_frame = int(percentage * self.__current_video.get(cv2.CAP_PROP_FRAME_COUNT))
         self.__current_video.set(cv2.CAP_PROP_POS_FRAMES, next_frame)
 
-    def read_video(self) -> tk.PhotoImage | None:
+    def read_video(self, thumb_shape: tuple[int, int]=None) -> tk.PhotoImage | None:
+        if thumb_shape is None:
+            thumb_shape = (self.__window_width, self.__window_height)
+
         try:
             ret, frame = self.__current_video.read()
             if ret:
 
                 frame_resized = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB),
-                                           (self.__window_width, self.__window_height))
+                                           thumb_shape)
                 photo = ImageTk.PhotoImage(image=Image.fromarray(frame_resized))
 
                 self.__current_frame = frame_resized
